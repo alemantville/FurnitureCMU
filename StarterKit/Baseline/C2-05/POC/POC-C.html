@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POC C · Live draft</title>
+<style>
+  :root{
+    --page:#e8e8e8; --surface:#ffffff; --soft:#f5f5f5; --line:#e0e0e0; --line-strong:#c9c9c9;
+    --ink:#1e1e1e; --muted:#6b6b6b; --faint:#9a9a9a;
+    --accent:#1f7a6b; --accent-soft:#e7f2ef; --accent-ink:#ffffff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  button{font:inherit;cursor:pointer;color:inherit}
+  button:disabled{cursor:default}
+  .page{max-width:980px;margin:0 auto;padding:32px 16px;display:flex;gap:40px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
+
+  .notes{flex:1 1 300px;max-width:400px}
+  .eyebrow{margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .notes h1{margin:4px 0 12px;font-size:26px;line-height:1.2}
+  .notes p{color:#444;margin:0 0 14px}
+  .notes h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:22px 0 8px}
+  .notes ul{margin:0;padding-left:18px;color:#444}
+  .notes li{margin-bottom:6px}
+  .sim{display:flex;gap:8px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:18px;font-size:14px}
+  .sim input{margin-top:3px;accent-color:var(--accent)}
+  .linkbtn{background:none;border:0;padding:0;color:var(--accent)!important;text-decoration:underline;margin-top:12px}
+
+  .phone{width:375px;max-width:100%;height:760px;background:var(--surface);border:1px solid var(--line-strong);border-radius:32px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+  #app{flex:1;display:flex;flex-direction:column;min-height:0}
+  .view{flex:1;display:flex;flex-direction:column;min-height:0}
+
+  .btn{border-radius:12px;padding:12px 16px;border:1px solid var(--line-strong);background:var(--surface);font-weight:600}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .btn.primary:disabled{background:#cfcfcf;border-color:#cfcfcf;color:#fff}
+  .btn.block{width:100%}
+  .btn.small{padding:7px 12px;font-size:14px;border-radius:10px}
+
+  /* Home */
+  .home{padding:28px 22px;display:flex;flex-direction:column;gap:14px;flex:1}
+  .home h2{font-size:24px;margin:24px 0 4px}
+  .home p{margin:0 0 18px;color:var(--muted)}
+  .entry{display:flex;align-items:center;gap:14px;text-align:left;padding:18px;border-radius:16px;border:1px solid var(--line-strong);background:var(--surface)}
+  .entry .ico{width:44px;height:44px;border-radius:12px;background:var(--soft);display:grid;place-items:center;font-size:20px}
+  .entry.main{border-color:var(--accent);background:var(--accent-soft)}
+  .entry.main .ico{background:var(--accent);color:#fff}
+  .entry b{display:block;font-size:17px}
+  .entry span{color:var(--muted);font-size:14px}
+
+  /* Top bar */
+  .topbar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
+  .topbar b{font-size:16px}
+  .steps{margin-left:auto;display:flex;gap:4px;align-items:center;font-size:12px;color:var(--muted)}
+  .steps i{width:18px;height:4px;border-radius:2px;background:var(--line)}
+  .steps i.on{background:var(--accent)}
+
+  /* Draft canvas */
+  .canvas{flex:1;overflow-y:auto;background:var(--soft);padding:14px}
+  .canvas-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin:0 2px 8px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+  .hero{height:150px;background:repeating-linear-gradient(135deg,#dcdcdc 0 12px,#d2d2d2 12px 24px);position:relative;display:flex;gap:6px;align-items:flex-end;padding:10px}
+  .hero.empty{background:var(--soft);border-bottom:1px dashed var(--line-strong);align-items:center;justify-content:center;color:var(--faint);font-size:14px}
+  .hero .count{margin-left:auto;background:#0008;color:#fff;font-size:12px;border-radius:10px;padding:2px 8px}
+  .preview-mode .hero{height:210px}
+  .fields{padding:6px 14px 10px}
+  .fld{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:9px 0;border-radius:0;transition:background .6s}
+  .fld:first-child{border-top:0}
+  .fld.tap:hover{background:var(--soft)}
+  .fld .lab{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:flex;gap:6px;align-items:center}
+  .tag{font-size:10px;padding:1px 6px;border-radius:20px;background:var(--accent-soft);color:var(--accent);font-weight:700;letter-spacing:0;text-transform:none}
+  .tag.you{background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+  .tag.q{background:var(--ink);color:#fff}
+  .fld .pen{margin-left:auto;color:var(--accent);font-size:12px;text-transform:none;letter-spacing:0}
+  .fld .v{margin-top:1px}
+  .fld .v.title{font-size:18px;font-weight:700}
+  .fld .v.price{font-size:20px;font-weight:700}
+  .fld .sub{font-size:12px;color:var(--muted)}
+  .skel{height:14px;border-radius:7px;background:linear-gradient(90deg,#ececec,#f6f6f6,#ececec);background-size:200% 100%;animation:sh 1.2s infinite;margin-top:5px;width:70%}
+  @keyframes sh{to{background-position:-200% 0}}
+  .fld.flash{background:var(--accent-soft)}
+  .fld.low{background:var(--soft);outline:1px dashed var(--line-strong);outline-offset:-1px;border-radius:10px;padding:9px 8px}
+  .fld.editing{cursor:default}
+  .fld input,.fld textarea{width:100%;font:inherit;padding:8px 10px;border:1.5px solid var(--accent);border-radius:10px;margin-top:6px;outline:none}
+  .fld textarea{min-height:70px;resize:vertical}
+  .editbar{display:flex;gap:8px;margin-top:8px}
+  .collect{margin:0 14px 14px;border:1px dashed var(--line-strong);border-radius:12px;padding:10px 12px;font-size:14px}
+  .collect.set{border-style:solid;border-color:var(--line)}
+  .collect h4{margin:0 0 4px;font-size:13px}
+  .collect .empty{color:var(--faint)}
+
+  /* Assistant sheet */
+  .sheet{background:var(--surface);border-top:1px solid var(--line-strong);border-radius:20px 20px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.06);padding:8px 16px 16px;max-height:58%;overflow-y:auto;margin-top:-12px;position:relative}
+  .grab{width:36px;height:4px;border-radius:2px;background:var(--line-strong);margin:0 auto 10px}
+  .say{display:flex;gap:10px;align-items:flex-start;margin-bottom:12px}
+  .av{width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none;font-size:13px}
+  .say b{display:block;font-size:16px;line-height:1.3}
+  .say span{display:block;color:var(--muted);font-size:14px;margin-top:2px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{border:1px solid var(--line-strong);background:var(--surface);border-radius:20px;padding:8px 13px;font-size:14px}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .row{display:flex;gap:8px;align-items:center;margin-top:12px}
+  .row .btn{flex:1}
+  .thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .th{width:50px;height:50px;border-radius:10px;background:repeating-linear-gradient(135deg,#d6d6d6 0 8px,#cdcdcd 8px 16px);font-size:11px;color:#555;display:flex;align-items:flex-end;padding:3px}
+  .th.add{background:var(--soft);border:1.5px dashed var(--line-strong);display:grid;place-items:center;font-size:22px;color:var(--ink);padding:0}
+  .ask{display:flex;gap:8px;margin-top:12px}
+  .ask input{flex:1;min-width:0;font:inherit;padding:10px 12px;border-radius:20px;border:1px solid var(--line-strong);outline:none}
+  .ask button{border:0;border-radius:20px;background:var(--accent);color:#fff;padding:0 14px;font-weight:600}
+  .ask button:disabled{background:#cfcfcf}
+  .question{background:var(--soft);border:1px dashed var(--line-strong);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+  .question p{margin:0 0 8px;font-size:14px}
+  .reply{font-size:13px;color:var(--accent);margin:8px 0 0;min-height:1em}
+  .dayslots{margin-bottom:10px}
+  .dayslots b{display:block;font-size:13px;margin-bottom:6px}
+  .lock{display:flex;gap:8px;align-items:center;background:var(--soft);border-radius:10px;padding:10px 12px;font-size:13px;color:#444}
+  .hint{margin:8px 0 0;text-align:center;font-size:13px;color:var(--muted)}
+
+  /* Live */
+  .live{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px}
+  .tick{width:72px;height:72px;border-radius:50%;background:var(--accent);color:#fff;font-size:34px;display:grid;place-items:center;margin-bottom:18px}
+  .live h2{margin:0 0 8px}
+  .live p{color:var(--muted);margin:0 0 6px}
+  .live .stack{display:flex;flex-direction:column;gap:10px;width:100%;margin-top:22px}
+  .badge{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--accent-soft);color:var(--accent)}
+</style>
+</head>
+<body>
+<main class="page">
+  <aside class="notes">
+    <p class="eyebrow">POC C</p>
+    <h1>Live draft</h1>
+    <p>The listing is on screen from the first second and builds itself as you go. The assistant sits in a sheet at the bottom and asks the next question; its answers appear on the card at once. You correct the AI by tapping the card itself, or by asking the assistant.</p>
+    <h2>What this POC tests</h2>
+    <ul>
+      <li>Does seeing the listing fill in make the AI feel trustworthy, or just fast?</li>
+      <li>The AI asks about what it's unsure of, instead of guessing.</li>
+      <li>Collection days and slots appear on the card while you pick them.</li>
+    </ul>
+    <h2>Behaviour leaning</h2>
+    <ul>
+      <li>Strict wizard 5 / 0: the sheet only ever shows the current step.</li>
+      <li>Proactive 3 / reactive 2: the AI asks one focused question and then waits.</li>
+      <li>Live 2 / staged 3: changes show on the card instantly, but each step and the upload are explicit commits.</li>
+    </ul>
+    <label class="sim"><input type="checkbox" id="simFail"> <span><b>Simulate fallback</b><br>The AI can't read the first photos.</span></label>
+    <button class="linkbtn" id="restart">Restart the flow</button>
+  </aside>
+  <div class="phone"><div id="app"></div></div>
+</main>
+
+<script>
+const FIELDS = [
+  {k:'title', label:'Title', v:'Wooden armchair with beige cushions', cls:'title'},
+  {k:'price', label:'Price', v:'€45', cls:'price', sub:'Similar chairs near you sold for €35–55'},
+  {k:'desc', label:'Description', v:'Solid wood armchair with removable beige cushions. Sturdy frame, light wear on the armrests.', long:true},
+  {k:'cat', label:'Category', v:'Home › Furniture › Chairs'},
+  {k:'color', label:'Colour', v:'Brown, beige'},
+  {k:'cond', label:'Condition', v:'Good, light wear', low:true},
+  {k:'loc', label:'Location', v:'Gràcia, Barcelona', sub:'From your profile. Buyers only see the area.'}
+];
+const DAYS = ['Mon 9','Tue 10','Wed 11','Thu 12','Fri 13','Sat 14','Sun 15'];
+const SLOTS = ['9–12','12–15','15–18','18–21'];
+const STEP_N = {photos:1, drafting:2, review:2, days:3, slots:4, preview:5};
+
+const app = document.getElementById('app');
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let S;
+const f = k => S.fields.find(x => x.k === k);
+
+function reset(){
+  S = {step:'home', photos:0, sent:0, failed:false, fields:FIELDS.map(x => ({...x, src:'ai', shown:false})), answered:false, editing:null, flash:null, days:[], slots:{}, reply:''};
+  home();
+}
+
+function home(){
+  app.innerHTML = `
+  <div class="view home">
+    <h2>Hi Marta</h2>
+    <p>What would you like to do with your item?</p>
+    <button class="entry main" id="sell"><span class="ico">€</span><span><b>Sell</b><span>Watch your listing write itself from a few photos.</span></span></button>
+    <button class="entry" id="donate"><span class="ico">♡</span><span><b>Donate</b><span>Give it away to someone nearby.</span></span></button>
+  </div>`;
+  $('#sell').onclick = () => go('photos');
+  $('#donate').onclick = () => alert('The Donate flow is not part of this POC.');
+}
+
+function go(step){ S.step = step; S.editing = null; render(); }
+
+function render(){
+  if(S.step === 'live') return live();
+  const n = STEP_N[S.step];
+  const preview = S.step === 'preview';
+  app.innerHTML = `
+  <div class="view">
+    <div class="topbar"><b>${preview ? 'Preview' : 'Sell an item'}</b><span class="steps">${[1,2,3,4,5].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}&nbsp;${n} of 5</span></div>
+    <div class="canvas" id="canvas">
+      <div class="canvas-label"><span>${preview ? 'What buyers will see' : 'Your listing, live'}</span><span>🔒 Only you can see this</span></div>
+      ${card(preview)}
+    </div>
+    <div class="sheet" id="sheet"><div class="grab"></div>${sheet()}</div>
+  </div>`;
+  bindCard(); bindSheet();
+  if(S.flash){ const el = document.querySelector(`[data-f="${S.flash}"]`); if(el){ el.classList.add('flash'); el.scrollIntoView({block:'nearest'}); setTimeout(() => el.classList.remove('flash'), 700); } S.flash = null; }
+}
+
+/* ---------- The live card ---------- */
+function card(preview){
+  const hero = S.sent ? `<div class="hero"><span class="count">${S.sent} photo${S.sent > 1 ? 's' : ''}</span></div>`
+                      : `<div class="hero empty">Your photos will appear here</div>`;
+  const tappable = S.step === 'review';
+  const fields = S.fields.map(x => {
+    if(!x.shown) return `<div class="fld"><div class="lab">${x.label}</div><div class="skel" style="width:${x.long ? 90 : 60}%"></div></div>`;
+    const lowOpen = x.low && !S.answered && S.step === 'review';
+    const tag = preview ? '' : x.src === 'you' ? `<span class="tag you">Edited by you</span>` : lowOpen ? `<span class="tag q">AI · please check</span>` : `<span class="tag">AI</span>`;
+    if(S.editing === x.k){
+      return `<div class="fld editing" data-f="${x.k}"><div class="lab">${x.label}${tag}</div>
+        ${x.long ? `<textarea id="ed">${esc(x.v)}</textarea>` : `<input id="ed" value="${esc(x.v)}">`}
+        <div class="editbar"><button class="btn small primary" id="save">Save</button><button class="btn small" id="cancel">Cancel</button></div></div>`;
+    }
+    return `<button class="fld ${tappable ? 'tap' : ''} ${lowOpen ? 'low' : ''}" data-f="${x.k}" ${tappable ? '' : 'tabindex="-1"'}>
+      <div class="lab">${x.label}${tag}${tappable ? '<span class="pen">Edit</span>' : ''}</div>
+      <div class="v ${x.cls || ''}">${esc(x.v)}</div>${x.sub && !preview ? `<div class="sub">${x.sub}</div>` : ''}</button>`;
+  }).join('');
+  const hasDays = S.days.length;
+  const collect = `<div class="collect ${hasDays ? 'set' : ''}"><h4>Collection</h4>${hasDays
+    ? S.days.map(d => `<div>${d}${S.slots[d] && S.slots[d].length ? ': ' + S.slots[d].join(', ') : S.step === 'days' ? '' : ': <span class="empty">pick times</span>'}</div>`).join('')
+    : `<span class="empty">Not set yet</span>`}</div>`;
+  return `<div class="card ${preview ? 'preview-mode' : ''}">${hero}<div class="fields">${fields}</div>${collect}</div>`;
+}
+function bindCard(){
+  if(S.step !== 'review') return;
+  document.querySelectorAll('button.fld').forEach(b => b.onclick = () => { S.editing = b.dataset.f; render(); $('#ed').focus(); });
+  const save = $('#save');
+  if(save){
+    save.onclick = () => { const x = f(S.editing), v = $('#ed').value.trim(); if(v && v !== x.v){ x.v = v; x.src = 'you'; } if(x.low) S.answered = true; S.flash = x.k; S.editing = null; render(); };
+    $('#cancel').onclick = () => { S.editing = null; render(); };
+  }
+}
+
+/* ---------- The assistant sheet ---------- */
+const say = (b, s) => `<div class="say"><span class="av">✦</span><div><b>${b}</b>${s ? `<span>${s}</span>` : ''}</div></div>`;
+function sheet(){
+  switch(S.step){
+    case 'photos': {
+      const pending = S.photos - S.sent;
+      return say(S.failed ? "I couldn't make out the item" : 'Upload the item pictures',
+                 S.failed ? 'Add one more in daylight, showing the whole item. Your photos are kept.' : 'Up to 6. Show the whole item and any marks: it helps me describe it honestly.') +
+        `<div class="thumbs">${Array.from({length:S.photos}, (_, i) => `<div class="th">${i + 1}</div>`).join('')}${S.photos < 6 ? `<button class="th add" id="add" aria-label="Add photo">+</button>` : ''}</div>
+         <button class="btn primary block" id="send" ${pending ? '' : 'disabled'}>Send photos</button>`;
+    }
+    case 'drafting':
+      return say('Writing your listing…', 'Watch it fill in above. You can change anything when I\'m done.');
+    case 'review':
+      return say('Here\'s your draft', 'Everything marked AI came from your photos. Tap anything on the card to change it.') +
+        (S.answered ? '' : `<div class="question"><p><b>One question:</b> I couldn't see the back of the chair. Is there any damage?</p>
+          <div class="chips"><button class="chip" data-a="no">No, it's fine</button><button class="chip" data-a="yes">Yes, some damage</button></div></div>`) +
+        `<div class="ask"><input id="ask" placeholder="Or ask me, e.g. “lower the price”" autocomplete="off"><button id="askgo" disabled>Ask</button></div>
+         <p class="reply" id="reply">${S.reply}</p>
+         <button class="btn primary block" id="confirm" ${S.answered && !S.editing ? '' : 'disabled'}>Confirm listing</button>
+         ${S.answered ? '' : '<p class="hint">Answer the question first</p>'}`;
+    case 'days':
+      return say("What's your availability for collection?", 'Pick every day that works. Buyers can only book what you choose.') +
+        `<div class="chips">${DAYS.map(d => `<button class="chip ${S.days.includes(d) ? 'on' : ''}" data-d="${d}">${d}</button>`).join('')}</div>
+         <div class="row"><button class="btn primary" id="next" ${S.days.length ? '' : 'disabled'}>Next</button></div>`;
+    case 'slots': {
+      const ready = S.days.every(d => S.slots[d] && S.slots[d].length);
+      return say('Which times suit you?', 'Pick at least one slot for each day.') +
+        S.days.map(d => `<div class="dayslots"><b>${d}</b><div class="chips">${SLOTS.map(t => `<button class="chip ${(S.slots[d] || []).includes(t) ? 'on' : ''}" data-d="${d}" data-t="${t}">${t}</button>`).join('')}</div></div>`).join('') +
+        `<div class="row"><button class="btn" id="back">Back</button><button class="btn primary" id="next" ${ready ? '' : 'disabled'}>Next: preview</button></div>`;
+    }
+    case 'preview':
+      return `<div class="lock">🔒 Nothing is public until you tap Upload item.</div>
+        <div class="row"><button class="btn" id="edit">Edit</button><button class="btn primary" id="up">Upload item</button></div>`;
+  }
+  return '';
+}
+function bindSheet(){
+  const on = (id, fn) => { const el = $('#' + id); if(el) el.onclick = fn; };
+  on('add', () => { S.photos++; render(); });
+  on('send', sendPhotos);
+  document.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
+    const c = f('cond');
+    if(b.dataset.a === 'yes'){
+      c.v = 'Fair, some damage on the back'; c.src = 'you';
+      const d = f('desc'); d.v += ' Some marks on the back of the frame.'; d.src = 'you';
+      S.reply = 'Thanks. I updated the condition and the description. Being upfront protects you from disputes later.';
+    } else {
+      S.reply = 'Great, I kept “Good, light wear”.';
+    }
+    S.answered = true; S.flash = 'cond'; render();
+  });
+  const ask = $('#ask');
+  if(ask){
+    const go = $('#askgo');
+    ask.oninput = () => go.disabled = !ask.value.trim();
+    ask.onkeydown = e => { if(e.key === 'Enter' && ask.value.trim()) askAI(ask.value.trim()); };
+    go.onclick = () => askAI(ask.value.trim());
+  }
+  on('confirm', () => S.days.length && Object.keys(S.slots).length ? go('preview') : go('days'));
+  document.querySelectorAll('[data-d]:not([data-t])').forEach(b => b.onclick = () => {
+    const d = b.dataset.d;
+    S.days = S.days.includes(d) ? S.days.filter(x => x !== d) : DAYS.filter(x => x === d || S.days.includes(x));
+    render();
+  });
+  document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => {
+    const {d, t} = b.dataset, cur = S.slots[d] || [], top = $('#sheet').scrollTop;
+    S.slots[d] = cur.includes(t) ? cur.filter(x => x !== t) : SLOTS.filter(x => x === t || cur.includes(x));
+    render(); $('#sheet').scrollTop = top;
+  });
+  on('next', () => {
+    if(S.step === 'days'){ Object.keys(S.slots).forEach(d => { if(!S.days.includes(d)) delete S.slots[d]; }); go('slots'); }
+    else go('preview');
+  });
+  on('back', () => go('days'));
+  on('edit', () => { S.reply = ''; go('review'); });
+  on('up', () => go('live'));
+}
+
+function sendPhotos(){
+  S.sent = S.photos;
+  if($('#simFail').checked && !S.failed){ S.failed = true; render(); return; }
+  S.failed = false;
+  go('drafting');
+  S.fields.forEach((x, i) => setTimeout(() => {
+    x.shown = true; S.flash = x.k; render();
+    if(i === S.fields.length - 1) setTimeout(() => go('review'), 500);
+  }, 500 + i * 380));
+}
+
+function askAI(text){
+  const t = text.toLowerCase();
+  const p = f('price'), cur = parseFloat(p.v.replace(/[^\d.]/g, '')) || 45;
+  let changed = null;
+  const num = t.match(/\d+/);
+  if(/price|cheaper|lower|€|euro/.test(t)){
+    const nv = num ? +num[0] : /lower|cheaper|reduce/.test(t) ? cur - 5 : /higher|raise|more/.test(t) ? cur + 5 : null;
+    if(nv){ p.v = '€' + nv; p.src = 'you'; changed = 'price'; S.reply = `Price set to €${nv}. Similar chairs near you sold for €35–55.`; }
+  } else if(/short/.test(t)){
+    const d = f('desc'); d.v = d.v.split('. ')[0] + '.'; d.src = 'you'; changed = 'desc'; S.reply = 'I shortened the description.';
+  } else if(/title/.test(t)){
+    const v = text.replace(/.*title\s*(to|:)?\s*/i, '').trim();
+    if(v){ const x = f('title'); x.v = v; x.src = 'you'; changed = 'title'; S.reply = 'Title updated.'; }
+  }
+  if(!changed) S.reply = 'I can change the price, title or description length. Or tap any line on the card to edit it yourself.';
+  S.flash = changed; render();
+}
+
+function live(){
+  app.innerHTML = `
+  <div class="view live">
+    <div class="tick">✓</div>
+    <h2>Your armchair is live</h2>
+    <p>Buyers nearby can see it now.</p>
+    <p>When someone books a collection slot, we'll tell you.</p>
+    <div class="stack"><button class="btn primary block" id="view">View post</button><button class="btn block" id="home">Back to home</button></div>
+  </div>`;
+  $('#view').onclick = () => {
+    app.innerHTML = `<div class="view"><div class="topbar"><b>Your listing</b><span class="badge" style="margin-left:auto">Live</span></div>
+      <div class="canvas">${card(true)}</div><div class="sheet"><button class="btn block" id="home">Back to home</button></div></div>`;
+    $('#home').onclick = reset;
+  };
+  $('#home').onclick = reset;
+}
+
+document.getElementById('restart').onclick = reset;
+reset();
+</script>
+</body>
+</html>
