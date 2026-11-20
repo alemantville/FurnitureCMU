@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POC B · One question at a time</title>
+<style>
+  :root{
+    --page:#e8e8e8; --surface:#ffffff; --soft:#f5f5f5; --line:#e0e0e0; --line-strong:#c9c9c9;
+    --ink:#1e1e1e; --muted:#6b6b6b; --faint:#9a9a9a;
+    --accent:#1f7a6b; --accent-soft:#e7f2ef; --accent-ink:#ffffff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  button{font:inherit;cursor:pointer;color:inherit}
+  button:disabled{cursor:default}
+  .page{max-width:980px;margin:0 auto;padding:32px 16px;display:flex;gap:40px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
+
+  .notes{flex:1 1 300px;max-width:400px}
+  .eyebrow{margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .notes h1{margin:4px 0 12px;font-size:26px;line-height:1.2}
+  .notes p{color:#444;margin:0 0 14px}
+  .notes h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:22px 0 8px}
+  .notes ul{margin:0;padding-left:18px;color:#444}
+  .notes li{margin-bottom:6px}
+  .sim{display:flex;gap:8px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:18px;font-size:14px}
+  .sim input{margin-top:3px;accent-color:var(--accent)}
+  .linkbtn{background:none;border:0;padding:0;color:var(--accent)!important;text-decoration:underline;margin-top:12px}
+
+  .phone{width:375px;max-width:100%;height:760px;background:var(--surface);border:1px solid var(--line-strong);border-radius:32px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+  #app{flex:1;display:flex;flex-direction:column;min-height:0}
+  .view{flex:1;display:flex;flex-direction:column;min-height:0}
+
+  .btn{border-radius:14px;padding:14px 16px;border:1px solid var(--line-strong);background:var(--surface);font-weight:600}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .btn.primary:disabled{background:#cfcfcf;border-color:#cfcfcf;color:#fff}
+  .btn.block{width:100%}
+
+  /* Home */
+  .home{padding:28px 22px;display:flex;flex-direction:column;gap:14px;flex:1}
+  .home h2{font-size:24px;margin:24px 0 4px}
+  .home p{margin:0 0 18px;color:var(--muted)}
+  .entry{display:flex;align-items:center;gap:14px;text-align:left;padding:18px;border-radius:16px;border:1px solid var(--line-strong);background:var(--surface)}
+  .entry .ico{width:44px;height:44px;border-radius:12px;background:var(--soft);display:grid;place-items:center;font-size:20px}
+  .entry.main{border-color:var(--accent);background:var(--accent-soft)}
+  .entry.main .ico{background:var(--accent);color:#fff}
+  .entry b{display:block;font-size:17px}
+  .entry span{color:var(--muted);font-size:14px}
+
+  /* Wizard frame */
+  .wtop{display:flex;align-items:center;gap:12px;padding:14px 16px 8px}
+  .back{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-size:18px;flex:none}
+  .segs{flex:1;display:flex;gap:4px}
+  .segs i{flex:1;height:4px;border-radius:2px;background:var(--line)}
+  .segs i.on{background:var(--accent)}
+  .stepn{font-size:13px;color:var(--muted);flex:none}
+  .private{font-size:12px;color:var(--muted);padding:0 16px 6px 64px}
+  .wbody{flex:1;overflow-y:auto;padding:14px 22px 20px;display:flex;flex-direction:column}
+  .say{display:flex;gap:10px;align-items:flex-start;margin:8px 0 22px}
+  .av{width:32px;height:32px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none;font-size:15px}
+  .say h2{margin:3px 0 4px;font-size:21px;line-height:1.25}
+  .say p{margin:0;color:var(--muted)}
+  .wfoot{padding:12px 22px 20px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+  .wfoot .hint{margin:0;text-align:center;font-size:13px;color:var(--muted)}
+  .pair{display:flex;gap:10px}
+  .pair .btn{flex:1}
+  .fade{animation:in .35s ease}
+  @keyframes in{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+
+  /* Photos */
+  .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .ph{aspect-ratio:1;border-radius:14px;background:repeating-linear-gradient(135deg,#d6d6d6 0 10px,#cdcdcd 10px 20px);display:flex;align-items:flex-end;padding:6px;font-size:12px;color:#555}
+  .addph{aspect-ratio:1;border-radius:14px;border:2px dashed var(--line-strong);background:var(--soft);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted);font-size:13px}
+  .addph b{font-size:26px;font-weight:400;color:var(--ink)}
+  .spinner{width:44px;height:44px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--accent);animation:spin 1s linear infinite;margin:40px auto 18px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .center{text-align:center;color:var(--muted)}
+
+  /* Review deck */
+  .counter{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:8px}
+  .pips{display:flex;gap:4px}
+  .pips i{width:8px;height:8px;border-radius:50%;background:var(--line)}
+  .pips i.done{background:var(--accent)}
+  .pips i.cur{background:var(--ink)}
+  .fcard{border:1px solid var(--line-strong);border-radius:20px;padding:20px;background:var(--surface);box-shadow:0 6px 18px rgba(0,0,0,.05);position:relative}
+  .fcard.low{border-style:dashed;background:var(--soft)}
+  .fcard .lab{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .tag{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--accent-soft);color:var(--accent);font-weight:600;margin-left:6px;vertical-align:1px}
+  .tag.you{background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+  .fval{font-size:20px;line-height:1.35;margin:10px 0 8px;font-weight:600}
+  .fval.long{font-size:16px;font-weight:400}
+  .fnote{font-size:14px;color:var(--muted);margin:0}
+  .fq{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line);font-size:15px}
+  .fcard input,.fcard textarea{width:100%;font:inherit;font-size:17px;padding:12px;border:1.5px solid var(--accent);border-radius:12px;margin-top:10px;outline:none}
+  .fcard textarea{min-height:110px;resize:vertical;font-size:15px}
+  .alts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .alts span{width:100%;font-size:13px;color:var(--muted)}
+  .chip{border:1px solid var(--line-strong);background:var(--surface);border-radius:20px;padding:8px 13px;font-size:14px}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  /* Summary */
+  .sum{border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .srow{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;padding:12px 14px;border:0;border-top:1px solid var(--line);background:var(--surface)}
+  .srow:first-child{border-top:0}
+  .srow .ok{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:12px;flex:none;margin-top:2px}
+  .srow .t{flex:1;min-width:0}
+  .srow .t small{display:block;color:var(--muted);font-size:12px}
+  .srow .t div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .srow .go{color:var(--accent);font-size:14px;flex:none}
+
+  /* Tiles */
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .tile{border:1.5px solid var(--line-strong);background:var(--surface);border-radius:14px;padding:12px 4px;display:flex;flex-direction:column;align-items:center;gap:2px}
+  .tile small{color:var(--muted);font-size:12px}
+  .tile b{font-size:20px}
+  .tile.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .tile.on small{color:#ffffffcc}
+  .slotday{margin-bottom:18px}
+  .slotday h3{font-size:15px;margin:0 0 8px}
+  .slots{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .slots .tile{flex-direction:row;justify-content:space-between;padding:12px 14px;text-align:left}
+  .slots .tile b{font-size:15px}
+
+  /* Preview / live */
+  .scroll{flex:1;overflow-y:auto}
+  .hero{height:220px;background:repeating-linear-gradient(135deg,#dcdcdc 0 12px,#d2d2d2 12px 24px);position:relative}
+  .hero .count{position:absolute;right:12px;bottom:12px;background:#0008;color:#fff;font-size:12px;border-radius:10px;padding:2px 8px}
+  .pv{padding:16px 22px}
+  .pv h2{margin:0;font-size:20px}
+  .price{font-size:22px;font-weight:700;margin:4px 0 10px}
+  .meta{display:grid;grid-template-columns:110px 1fr;gap:6px 10px;font-size:14px;margin:12px 0}
+  .meta dt{color:var(--muted)}.meta dd{margin:0}
+  .box{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px}
+  .box h4{margin:0 0 6px;font-size:14px}
+  .lock{display:flex;gap:8px;align-items:center;background:var(--soft);border-radius:10px;padding:10px 12px;font-size:13px;color:#444;margin:0 22px 12px}
+  .live{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px}
+  .tick{width:72px;height:72px;border-radius:50%;background:var(--accent);color:#fff;font-size:34px;display:grid;place-items:center;margin-bottom:18px}
+  .live h2{margin:0 0 8px}
+  .live p{color:var(--muted);margin:0 0 6px}
+  .live .stack{display:flex;flex-direction:column;gap:10px;width:100%;margin-top:22px}
+  .badge{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--accent-soft);color:var(--accent)}
+  .topbar{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+</style>
+</head>
+<body>
+<main class="page">
+  <aside class="notes">
+    <p class="eyebrow">POC B</p>
+    <h1>One question at a time</h1>
+    <p>A calm, full-screen wizard. Each screen asks one thing, in the assistant's voice, with one main button. The AI draft is reviewed as a short deck of cards: one field per card, <em>Looks right</em> or <em>Change</em>. Fields the AI isn't sure about are flagged and must be answered.</p>
+    <h2>What this POC tests</h2>
+    <ul>
+      <li>Does approving fields one by one feel reassuring, or slow?</li>
+      <li>Big tap targets and AI-suggested alternatives instead of typing.</li>
+      <li>A summary of every field before you confirm.</li>
+    </ul>
+    <h2>Behaviour leaning</h2>
+    <ul>
+      <li>Strict wizard 5 / 0: one path, a back arrow, no side doors.</li>
+      <li>Review mode 4 / 1: approve or change each AI suggestion.</li>
+      <li>Conversational 3 / direct 2: the assistant speaks every question; answers are mostly taps, which is lighter on conversation than the score asks.</li>
+    </ul>
+    <label class="sim"><input type="checkbox" id="simFail"> <span><b>Simulate fallback</b><br>The AI can't read the first photos.</span></label>
+    <button class="linkbtn" id="restart">Restart the flow</button>
+  </aside>
+  <div class="phone"><div id="app"></div></div>
+</main>
+
+<script>
+const FIELDS = [
+  {k:'title', label:'Title', v:'Wooden armchair with beige cushions'},
+  {k:'desc', label:'Description', v:'Solid wood armchair with removable beige cushions. Sturdy frame, light wear on the armrests.', long:true},
+  {k:'cat', label:'Category', v:'Home › Furniture › Chairs', alts:['Home › Furniture › Armchairs','Home › Furniture › Chairs','Garden › Furniture']},
+  {k:'color', label:'Colour', v:'Brown, beige', alts:['Brown, beige','Natural wood','Dark brown']},
+  {k:'cond', label:'Condition', v:'Good, light wear', low:true, q:"I couldn't see the back of the chair. Is this condition right?", alts:['Like new','Good, light wear','Fair, visible damage']},
+  {k:'price', label:'Price', v:'€45', note:'Similar chairs near you sold for €35–55.', alts:['€40','€45','€50']},
+  {k:'loc', label:'Location', v:'Gràcia, Barcelona', note:'From your profile. Buyers only see the area.'}
+];
+const DAYS = [['Mon','9'],['Tue','10'],['Wed','11'],['Thu','12'],['Fri','13'],['Sat','14'],['Sun','15']];
+const SLOTS = [['Morning','9–12'],['Midday','12–15'],['Afternoon','15–18'],['Evening','18–21']];
+
+const app = document.getElementById('app');
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let S;
+const f = k => S.fields.find(x => x.k === k);
+
+function reset(){
+  S = {photos:0, failed:false, fields:FIELDS.map(x => ({...x, src:'ai', done:false})), i:0, editing:false, fromSummary:false, days:[], slots:{}};
+  home();
+}
+
+function home(){
+  app.innerHTML = `
+  <div class="view home">
+    <h2>Hi Marta</h2>
+    <p>What would you like to do with your item?</p>
+    <button class="entry main" id="sell"><span class="ico">€</span><span><b>Sell</b><span>Answer a few short questions. The assistant writes the listing.</span></span></button>
+    <button class="entry" id="donate"><span class="ico">♡</span><span><b>Donate</b><span>Give it away to someone nearby.</span></span></button>
+  </div>`;
+  $('#sell').onclick = photos;
+  $('#donate').onclick = () => alert('The Donate flow is not part of this POC.');
+}
+
+/* Wizard frame: step = 1..5, back = fn */
+function frame(step, back, body, foot){
+  app.innerHTML = `
+  <div class="view">
+    <div class="wtop">
+      <button class="back" id="back" aria-label="Back">←</button>
+      <div class="segs">${[1,2,3,4,5].map(n => `<i class="${n <= step ? 'on' : ''}"></i>`).join('')}</div>
+      <span class="stepn">${step} of 5</span>
+    </div>
+    <div class="private">🔒 Draft. Only you can see it.</div>
+    <div class="wbody fade">${body}</div>
+    <div class="wfoot">${foot}</div>
+  </div>`;
+  $('#back').onclick = back;
+}
+const say = (h, p) => `<div class="say"><span class="av">✦</span><div><h2>${h}</h2>${p ? `<p>${p}</p>` : ''}</div></div>`;
+
+/* ---------- Step 2: photos ---------- */
+function photos(){
+  const thumbs = Array.from({length:S.photos}, (_, i) => `<div class="ph">${i + 1}</div>`).join('');
+  frame(1, home,
+    say('Upload the item pictures', S.failed ? 'Add one more in daylight, showing the whole item. Your other photos are kept.' : 'Up to 6. Show the whole item and any marks: it helps me describe it honestly.') +
+    `<div class="pgrid">${thumbs}${S.photos < 6 ? `<button class="addph" id="add"><b>+</b>Camera or gallery</button>` : ''}</div>`,
+    `<button class="btn primary block" id="next" ${S.photos ? '' : 'disabled'}>Send photos</button>
+     <p class="hint">${S.photos ? `${S.photos} photo${S.photos > 1 ? 's' : ''} ready` : 'Add at least one photo'}</p>`);
+  const add = $('#add'); if(add) add.onclick = () => { S.photos++; photos(); };
+  $('#next').onclick = analyse;
+}
+function analyse(){
+  frame(1, photos, say('Looking at your photos…', 'This takes a few seconds.') + `<div class="spinner"></div><p class="center">Working out what it is, its condition and a fair price.</p>`,
+    `<button class="btn block" disabled>Please wait</button>`);
+  setTimeout(() => {
+    if($('#simFail').checked && !S.failed){ S.failed = true; return failed(); }
+    S.i = 0; deck();
+  }, 1600);
+}
+function failed(){
+  frame(1, photos, say("I couldn't make out the item", 'The light may be too low, or the item is cut off. Nothing is lost: your photos are kept.') +
+    `<div class="pgrid">${Array.from({length:S.photos}, (_, i) => `<div class="ph">${i + 1}</div>`).join('')}</div>`,
+    `<button class="btn primary block" id="more">Add another photo</button>`);
+  $('#more').onclick = photos;
+}
+
+/* ---------- Step 3: review deck ---------- */
+function deck(){
+  const x = S.fields[S.i], n = S.fields.length;
+  const pips = S.fields.map((y, j) => `<i class="${j === S.i ? 'cur' : y.done ? 'done' : ''}"></i>`).join('');
+  const tag = `<span class="tag ${x.src === 'you' ? 'you' : ''}">${x.src === 'you' ? 'Edited by you' : 'AI suggests'}</span>`;
+  let card, foot;
+  if(S.editing){
+    const input = x.long ? `<textarea id="ed">${esc(x.v)}</textarea>` : `<input id="ed" value="${esc(x.v)}">`;
+    card = `<div class="fcard"><span class="lab">${x.label}</span>${tag}${input}
+      ${x.alts ? `<div class="alts"><span>Or pick one:</span>${x.alts.map(a => `<button class="chip ${a === x.v ? 'on' : ''}" data-alt="${esc(a)}">${esc(a)}</button>`).join('')}</div>` : ''}
+      ${x.note ? `<p class="fnote" style="margin-top:12px">${x.note}</p>` : ''}</div>`;
+    foot = `<div class="pair"><button class="btn" id="cancel">Cancel</button><button class="btn primary" id="save">Save</button></div>`;
+  } else {
+    card = `<div class="fcard ${x.low && !x.done ? 'low' : ''}"><span class="lab">${x.label}</span>${tag}
+      <div class="fval ${x.long ? 'long' : ''}">${esc(x.v)}</div>
+      ${x.note ? `<p class="fnote">${x.note}</p>` : ''}
+      ${x.low && !x.done ? `<p class="fq"><b>Please check:</b> ${x.q}</p>` : ''}</div>`;
+    foot = `<div class="pair"><button class="btn" id="change">Change</button><button class="btn primary" id="ok">${x.low && !x.done ? "Yes, it's right" : 'Looks right'}</button></div>`;
+  }
+  const back = () => { S.editing = false; if(S.fromSummary){ S.fromSummary = false; summary(); } else if(S.i > 0){ S.i--; deck(); } else photos(); };
+  frame(2, back,
+    (S.i === 0 && !S.fromSummary ? say("Here's what I found", 'Check each detail. Everything marked AI was filled in from your photos.') : say(S.fromSummary ? 'Change this detail' : x.low ? "I'm not sure about this one" : 'Is this right?')) +
+    `<div class="counter"><span>Detail ${S.i + 1} of ${n}</span><span class="pips">${pips}</span></div>${card}`,
+    foot);
+  if(S.editing){
+    const ed = $('#ed'); ed.focus();
+    document.querySelectorAll('[data-alt]').forEach(b => b.onclick = () => { ed.value = b.dataset.alt; document.querySelectorAll('[data-alt]').forEach(c => c.classList.toggle('on', c === b)); });
+    $('#cancel').onclick = () => { S.editing = false; deck(); };
+    $('#save').onclick = () => { const v = ed.value.trim(); if(v && v !== x.v){ x.v = v; x.src = 'you'; } S.editing = false; advance(); };
+  } else {
+    $('#change').onclick = () => { S.editing = true; deck(); };
+    $('#ok').onclick = advance;
+  }
+}
+function advance(){
+  S.fields[S.i].done = true;
+  if(S.fromSummary){ S.fromSummary = false; return summary(); }
+  if(S.i < S.fields.length - 1){ S.i++; deck(); } else summary();
+}
+function summary(){
+  frame(2, () => { S.i = S.fields.length - 1; deck(); },
+    say('All checked', 'Here is your listing. Tap any line to change it.') +
+    `<div class="sum">${S.fields.map((x, j) => `<button class="srow" data-j="${j}"><span class="ok">✓</span><span class="t"><small>${x.label} · ${x.src === 'you' ? 'edited by you' : 'AI'}</small><div>${esc(x.v)}</div></span><span class="go">Edit</span></button>`).join('')}</div>`,
+    `<button class="btn primary block" id="confirm">Confirm listing</button><p class="hint">Next: when can buyers collect it?</p>`);
+  document.querySelectorAll('.srow').forEach(b => b.onclick = () => { S.i = +b.dataset.j; S.fromSummary = true; S.editing = true; deck(); });
+  $('#confirm').onclick = () => S.days.length ? preview() : days();
+}
+
+/* ---------- Step 4: days ---------- */
+function days(){
+  frame(3, summary,
+    say("What's your availability for collection?", 'Pick every day that works. Buyers can only book the times you choose.') +
+    `<div class="tiles">${DAYS.map(([d, n]) => { const id = `${d} ${n}`; return `<button class="tile ${S.days.includes(id) ? 'on' : ''}" data-d="${id}"><small>${d}</small><b>${n}</b><small>Nov</small></button>`; }).join('')}</div>`,
+    `<button class="btn primary block" id="next" ${S.days.length ? '' : 'disabled'}>Next</button><p class="hint">${S.days.length ? `${S.days.length} day${S.days.length > 1 ? 's' : ''} selected` : 'Pick at least one day'}</p>`);
+  document.querySelectorAll('[data-d]').forEach(b => b.onclick = () => {
+    const d = b.dataset.d;
+    S.days = S.days.includes(d) ? S.days.filter(x => x !== d) : DAYS.map(([a, n]) => `${a} ${n}`).filter(x => x === d || S.days.includes(x));
+    days();
+  });
+  $('#next').onclick = slots;
+}
+
+/* ---------- Step 5: time slots ---------- */
+function slots(){
+  S.days.forEach(d => S.slots[d] = S.slots[d] || []);
+  Object.keys(S.slots).forEach(d => { if(!S.days.includes(d)) delete S.slots[d]; });
+  const ready = S.days.every(d => S.slots[d].length);
+  frame(4, days,
+    say('Which times suit you?', 'Pick at least one slot for each day.') +
+    S.days.map(d => `<div class="slotday"><h3>${d}</h3><div class="slots">${SLOTS.map(([name, t]) => `<button class="tile ${S.slots[d].includes(t) ? 'on' : ''}" data-d="${d}" data-t="${t}"><b>${name}</b><small>${t}</small></button>`).join('')}</div></div>`).join(''),
+    `<button class="btn primary block" id="next" ${ready ? '' : 'disabled'}>Next: preview</button>`);
+  const body = $('.wbody'); body.classList.remove('fade');
+  document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => {
+    const {d, t} = b.dataset, top = $('.wbody').scrollTop;
+    S.slots[d] = S.slots[d].includes(t) ? S.slots[d].filter(x => x !== t) : SLOTS.map(s => s[1]).filter(x => x === t || S.slots[d].includes(x));
+    slots(); $('.wbody').classList.remove('fade'); $('.wbody').scrollTop = top;
+  });
+  $('#next').onclick = preview;
+}
+
+/* ---------- Step 6: preview ---------- */
+function listingBody(){
+  return `<div class="hero"><span class="count">1 / ${S.photos}</span></div>
+  <div class="pv">
+    <h2>${esc(f('title').v)}</h2>
+    <div class="price">${esc(f('price').v)}</div>
+    <p>${esc(f('desc').v)}</p>
+    <dl class="meta"><dt>Category</dt><dd>${esc(f('cat').v)}</dd><dt>Colour</dt><dd>${esc(f('color').v)}</dd><dt>Condition</dt><dd>${esc(f('cond').v)}</dd><dt>Location</dt><dd>${esc(f('loc').v)}</dd></dl>
+    <div class="box"><h4>Collection</h4>${S.days.map(d => `<div>${d} Nov: ${S.slots[d].join(', ')}</div>`).join('')}</div>
+  </div>`;
+}
+function preview(){
+  app.innerHTML = `
+  <div class="view">
+    <div class="wtop">
+      <button class="back" id="back" aria-label="Back">←</button>
+      <div class="segs">${[1,2,3,4,5].map(() => `<i class="on"></i>`).join('')}</div>
+      <span class="stepn">5 of 5</span>
+    </div>
+    <div class="scroll">${say('This is what buyers will see', '')}${listingBody()}</div>
+    <div class="lock">🔒 Nothing is public until you tap Upload item.</div>
+    <div class="wfoot"><div class="pair"><button class="btn" id="edit">Edit</button><button class="btn primary" id="up">Upload item</button></div></div>
+  </div>`;
+  $('.scroll .say').style.margin = '6px 22px 14px';
+  $('#back').onclick = slots;
+  $('#edit').onclick = summary;
+  $('#up').onclick = live;
+}
+
+/* ---------- Step 7: live ---------- */
+function live(){
+  app.innerHTML = `
+  <div class="view live">
+    <div class="tick">✓</div>
+    <h2>Your armchair is live</h2>
+    <p>Buyers nearby can see it now.</p>
+    <p>When someone books a collection slot, we'll tell you.</p>
+    <div class="stack"><button class="btn primary block" id="view">View post</button><button class="btn block" id="home">Back to home</button></div>
+  </div>`;
+  $('#view').onclick = () => {
+    app.innerHTML = `<div class="view"><div class="topbar"><b>Your listing</b><span class="badge" style="margin-left:auto">Live</span></div><div class="scroll">${listingBody()}</div>
+      <div class="wfoot"><button class="btn block" id="home">Back to home</button></div></div>`;
+    $('#home').onclick = reset;
+  };
+  $('#home').onclick = reset;
+}
+
+document.getElementById('restart').onclick = reset;
+reset();
+</script>
+</body>
+</html>
