@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POC final · Guided chat</title>
+<style>
+  :root{
+    --page:#e8e8e8; --surface:#ffffff; --soft:#f6f6f6; --line:#e3e3e3; --line-strong:#c9c9c9;
+    --ink:#1e1e1e; --muted:#6b6b6b; --faint:#9a9a9a;
+    --accent:#1f7a6b; --accent-soft:#e7f2ef; --accent-ink:#ffffff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  button{font:inherit;cursor:pointer;color:inherit}
+  button:disabled{cursor:default}
+  .page{max-width:980px;margin:0 auto;padding:32px 16px;display:flex;gap:40px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
+
+  /* Side notes */
+  .notes{flex:1 1 300px;max-width:400px}
+  .eyebrow{margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .notes h1{margin:4px 0 12px;font-size:26px;line-height:1.2}
+  .notes p{color:#444;margin:0 0 14px}
+  .notes h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:22px 0 8px}
+  .notes ol,.notes ul{margin:0;padding-left:20px;color:#444}
+  .notes li{margin-bottom:6px}
+  .sim{display:flex;gap:8px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:18px;font-size:14px}
+  .sim input{margin-top:3px;accent-color:var(--accent)}
+  .linkbtn{background:none;border:0;padding:0;color:var(--accent)!important;text-decoration:underline;margin-top:12px}
+
+  /* Phone */
+  .phone{width:375px;max-width:100%;height:760px;background:var(--surface);border:1px solid var(--line-strong);border-radius:32px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+  #app{flex:1;display:flex;flex-direction:column;min-height:0}
+  .view{flex:1;display:flex;flex-direction:column;min-height:0}
+  .view[hidden]{display:none}
+
+  .btn{border-radius:14px;padding:13px 16px;border:1px solid var(--line-strong);background:var(--surface);font-weight:600}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .btn.primary:disabled{background:#cfcfcf;border-color:#cfcfcf;color:#fff}
+  .btn.block{width:100%}
+
+  /* Home */
+  .home{padding:28px 22px;display:flex;flex-direction:column;gap:14px;flex:1}
+  .home h2{font-size:24px;margin:24px 0 4px}
+  .home p{margin:0 0 18px;color:var(--muted)}
+  .entry{display:flex;align-items:center;gap:14px;text-align:left;padding:18px;border-radius:16px;border:1px solid var(--line-strong);background:var(--surface)}
+  .entry .ico{width:44px;height:44px;border-radius:12px;background:var(--soft);display:grid;place-items:center;font-size:20px}
+  .entry.main{border-color:var(--accent);background:var(--accent-soft)}
+  .entry.main .ico{background:var(--accent);color:#fff}
+  .entry b{display:block;font-size:17px}
+  .entry span{color:var(--muted);font-size:14px}
+
+  /* Chat header: no stepper */
+  .hdr{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
+  .back{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-size:18px;flex:none}
+  .hdr b{display:block;font-size:16px}
+  .hdr small{display:block;font-size:12px;color:var(--muted)}
+
+  /* Thread: lots of air, older turns fade back */
+  .thread{flex:1;overflow-y:auto;padding:22px 18px 24px;display:flex;flex-direction:column;gap:12px;background:var(--surface)}
+  .msg{max-width:88%;line-height:1.45;transition:opacity .4s}
+  .msg.bot{align-self:flex-start;display:flex;gap:10px}
+  .msg.bot .av{width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none;font-size:13px;margin-top:2px}
+  .msg.bot .txt{font-size:17px}
+  .msg.bot .sub{display:block;color:var(--muted);font-size:14px;margin-top:3px}
+  .msg.me{align-self:flex-end;text-align:right}
+  .msg.me .bub{display:inline-block;background:var(--accent);color:#fff;padding:9px 14px;border-radius:18px;border-bottom-right-radius:5px;font-size:15px;text-align:left}
+  .msg.me .change{display:block;margin-top:4px;background:none;border:0;padding:0;color:var(--accent);font-size:13px;margin-left:auto}
+  .old{opacity:.45}
+  .old .change{display:none}
+  .typing{display:flex;gap:4px;padding:8px 0 8px 38px}
+  .typing i{width:6px;height:6px;border-radius:50%;background:var(--faint);animation:blink 1s infinite}
+  .typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+  @keyframes blink{0%,100%{opacity:.3}50%{opacity:1}}
+  .thumbs{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .thumb{width:58px;height:58px;border-radius:12px;background:repeating-linear-gradient(135deg,#d6d6d6 0 8px,#cdcdcd 8px 16px);display:flex;align-items:flex-end;padding:4px;font-size:11px;color:#555}
+
+  /* Pickers that live in the thread (days, slots) */
+  .widget{margin-left:38px;display:flex;flex-direction:column;gap:10px}
+  .widget.wide{margin-left:0}
+  .opts{display:flex;flex-wrap:wrap;gap:8px}
+  .opt{border:1px solid var(--line-strong);background:var(--surface);border-radius:22px;padding:8px 13px;font-size:14px}
+  .opt.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .opt:hover{border-color:var(--accent)}
+  .opt small{opacity:.7;font-size:12px}
+  .opt.ghost{color:var(--muted);border-style:dashed}
+  .dayblock b{display:block;font-size:14px;margin:4px 0 6px}
+
+  /* Listing card shown in chat: all details visible */
+  .draft{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--surface)}
+  .dhero{height:120px;background:repeating-linear-gradient(135deg,#dcdcdc 0 12px,#d2d2d2 12px 24px);position:relative}
+  .dhero span{position:absolute;right:10px;bottom:10px;background:#0008;color:#fff;font-size:12px;border-radius:10px;padding:2px 8px}
+  .dbody{padding:12px 14px}
+  .dbody .t{font-weight:700;font-size:16px;margin:4px 0 0}
+  .dbody .p{font-weight:700;font-size:18px}
+  .dbody .d{font-size:14px;margin:8px 0 0;color:#333}
+  .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:20px;background:var(--accent-soft);color:var(--accent);font-weight:600;white-space:nowrap}
+  .tag.checked{background:var(--soft);color:var(--ink);border:1px solid var(--line)}
+  .tag.you{background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+  .dl{display:grid;grid-template-columns:96px 1fr;gap:8px 10px;font-size:14px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+  .dl dt{color:var(--muted)}
+  .dl dd{margin:0}
+  .dl dd .tag{margin-left:4px}
+
+  /* Suggested answers, above the chat input */
+  .suggest{display:flex;gap:8px;overflow-x:auto;padding:10px 14px 2px;background:var(--surface);scrollbar-width:none}
+  .suggest::-webkit-scrollbar{display:none}
+  .suggest:empty{display:none}
+  .sug{flex:none;border:1px solid var(--accent);color:var(--accent);background:var(--surface);border-radius:20px;padding:8px 14px;font-size:14px;font-weight:500;white-space:nowrap}
+  .sug:hover{background:var(--accent-soft)}
+  .sug small{opacity:.75;font-size:12px}
+  .sug.ghost{border-color:var(--line-strong);color:var(--muted)}
+
+  /* Composer */
+  .tray{display:flex;gap:6px;padding:8px 14px 0;background:var(--surface)}
+  .tray:empty{display:none}
+  .tray .thumb{width:46px;height:46px}
+  .composer{display:flex;gap:8px;padding:10px 14px 14px;background:var(--surface);align-items:center}
+  .composer input{flex:1;font:inherit;padding:11px 14px;border-radius:22px;border:1px solid var(--line-strong);outline:none;min-width:0}
+  .composer input:focus{border-color:var(--accent)}
+  .composer input:disabled{background:var(--soft)}
+  .attach{width:42px;height:42px;border-radius:50%;border:1px solid var(--line-strong);background:var(--surface);font-size:20px;flex:none}
+  .attach:disabled{opacity:.35}
+  .send{border-radius:22px;border:0;background:var(--accent);color:#fff;padding:11px 15px;font-weight:600;flex:none}
+  .send:disabled{background:#cfcfcf}
+  .bottom{border-top:1px solid var(--line)}
+
+  /* Preview: the listing as buyers see it */
+  .topbar{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line)}
+  .topbar b{font-size:16px}
+  .scroll{flex:1;overflow-y:auto}
+  .hero{height:220px;background:repeating-linear-gradient(135deg,#dcdcdc 0 12px,#d2d2d2 12px 24px);position:relative}
+  .hero .count{position:absolute;right:12px;bottom:12px;background:#0008;color:#fff;font-size:12px;border-radius:10px;padding:2px 8px}
+  .sec{padding:14px 20px;border-bottom:1px solid var(--line);position:relative}
+  .sec h2{margin:0;font-size:20px;padding-right:48px}
+  .sec h4{margin:0 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .sec p{margin:0}
+  .sec .price{font-size:22px;font-weight:700;margin-top:4px}
+  .sec .price small{font-size:13px;font-weight:500;color:var(--muted);margin-left:6px}
+  .sec .edit{position:absolute;right:20px;top:14px;background:none;border:0;padding:0;color:var(--accent);font-size:14px}
+  .sec .dl{border-top:0;padding-top:0;margin-top:0}
+  .sec.seller{background:var(--soft);border:1px dashed var(--line-strong);border-radius:14px;margin:14px 16px;padding:12px 14px}
+  .sec.seller .edit{right:14px;top:12px}
+  .lock{display:flex;gap:8px;align-items:center;background:var(--soft);border-radius:10px;padding:10px 12px;font-size:13px;color:#444;margin:10px 16px 0}
+  .actions{padding:12px 16px 18px;display:flex;gap:10px}
+  .actions .btn{flex:1}
+
+  /* Live */
+  .live{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px}
+  .tick{width:72px;height:72px;border-radius:50%;background:var(--accent);color:#fff;font-size:34px;display:grid;place-items:center;margin-bottom:18px}
+  .live h2{margin:0 0 8px}
+  .live p{color:var(--muted);margin:0 0 6px}
+  .live .stack{display:flex;flex-direction:column;gap:10px;width:100%;margin-top:22px}
+  .badge{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--accent-soft);color:var(--accent)}
+</style>
+</head>
+<body>
+<main class="page">
+  <aside class="notes">
+    <p class="eyebrow">POC final · v2</p>
+    <h1>Guided chat</h1>
+    <p>One calm conversation from photos to a live listing. The assistant drafts the listing from your photos and asks the important questions first. Only then does it show you the listing. You answer with the suggested replies above the chat box, or in your own words.</p>
+    <h2>The conversation</h2>
+    <ol>
+      <li>“Hey Marta! What do you want to do today?” Sell or Donate</li>
+      <li>Photos</li>
+      <li>Is this a … ? (what it is)</li>
+      <li>Any damage on the back? (you can add a photo of it)</li>
+      <li>Price, or give it away for free</li>
+      <li>How low will you go? (the assistant handles offers for you)</li>
+      <li>The listing with all details, then “All good” or “Change something”</li>
+      <li>When do you want to sell it by?</li>
+      <li>Collection days and times (optional, matched to your timing)</li>
+      <li>Preview → Upload item → Item live</li>
+    </ol>
+    <h2>Also</h2>
+    <ul>
+      <li>Go back with ←, with <i>Change</i> under your last answer, or by typing “back”.</li>
+      <li>Your minimum price, timing and collection times are only visible to you. Collection times are shared with a buyer only when they ask when they can collect.</li>
+      <li>Categories follow an IKEA-style tree (e.g. Tables › Desks). Changing one is two taps: category, then subcategory, with the AI's best guesses first.</li>
+    </ul>
+    <label class="sim"><input type="checkbox" id="simFail"> <span><b>Simulate fallback</b><br>The AI can't read the first photos.</span></label>
+    <button class="linkbtn" id="restart">Restart the flow</button>
+  </aside>
+  <div class="phone"><div id="app"></div></div>
+</main>
+
+<script>
+/* ---------- Data ---------- */
+const FIELDS = {
+  title:{label:'Title', v:'Wooden armchair with beige cushions'},
+  desc:{label:'Description', v:'Solid wood armchair with removable beige cushions. Sturdy frame, light wear on the armrests.'},
+  cat:{label:'Category', v:'Armchairs › Wooden armchairs'},
+  color:{label:'Colour', v:'Brown, beige'},
+  cond:{label:'Condition', v:'Good, light wear'},
+  price:{label:'Price', v:'€45'},
+  loc:{label:'Location', v:'Gràcia, Barcelona'}
+};
+const ALTS = {
+  title:[['Wooden armchair with beige cushions'],['Mid-century wooden armchair'],['Solid wood lounge chair']],
+  desc:[['Shorter','Solid wood armchair with beige cushions. Light wear.'],
+        ['More detail','Solid wood armchair with removable, washable beige cushions. Sturdy frame with no wobble, light wear on the armrests. Smoke-free home.']],
+  color:[['Brown, beige'],['Natural wood'],['Dark brown']],
+  loc:[['Gràcia, Barcelona'],['Eixample, Barcelona'],['Sant Antoni, Barcelona']]
+};
+/* Category tree modelled on IKEA's product range: Category › Subcategory */
+const CATEGORIES = {
+  'Armchairs':['Wooden armchairs','Fabric armchairs','Recliners','Footstools & pouffes'],
+  'Sofas':['Fabric sofas','Leather sofas','Corner sofas','Sofa beds'],
+  'Chairs':['Dining chairs','Desk chairs','Stools & benches','Children\'s chairs'],
+  'Tables':['Dining tables','Coffee tables','Side tables','Desks'],
+  'Storage':['Bookcases','Chests of drawers','Wardrobes','TV benches'],
+  'Beds':['Bed frames','Mattresses','Children\'s beds','Bedside tables'],
+  'Lighting':['Ceiling lamps','Floor lamps','Table lamps'],
+  'Outdoor':['Outdoor chairs','Outdoor tables','Loungers'],
+  'Decoration':['Mirrors','Rugs','Frames','Plants & plant pots']
+};
+// The AI's best guesses come first, so most sellers never need the full list.
+const CAT_GUESSES = ['Armchairs','Chairs','Sofas','Outdoor'];
+const URGENCY = {
+  asap:{label:'As soon as possible', days:3, reply:"Got it. I'll put buyers who can collect soonest first."},
+  week:{label:'Within a week', days:7, reply:"Got it. I'll aim to sell it this week."},
+  month:{label:'Within a month', days:14, reply:"Got it. There's time to wait for a good offer."},
+  none:{label:'No rush', days:14, reply:"Got it. I'll hold out for offers close to your price."}
+};
+const SLOTS = ['9–12','12–15','15–18','18–21'];
+const START = new Date(2026, 10, 8); // tomorrow
+function dayList(n){
+  return Array.from({length:n}, (_, i) => {
+    const d = new Date(START); d.setDate(d.getDate() + i);
+    return {id:d.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'}),
+            short:d.toLocaleDateString('en-GB', {weekday:'short', day:'numeric'}),
+            weekend:d.getDay() === 0 || d.getDay() === 6};
+  });
+}
+
+/* ---------- Helpers ---------- */
+const app = document.getElementById('app');
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const euro = n => '€' + n;
+let S, thread;
+
+function reset(){
+  const fields = {};
+  for(const k in FIELDS) fields[k] = {...FIELDS[k], src:'ai'};
+  S = {fields, photos:0, backPhoto:false, pending:0, failed:false, drafted:false, hist:[], cur:null, widgets:[], busy:false, mode:'off',
+       returnTo:null, field:null, min:null, urgency:null, days:[], slots:{}, collectDone:false, catTop:null};
+  openChat();
+}
+const F = k => S.fields[k];
+const set = (k, v, src='you') => { F(k).v = v; F(k).src = src; };
+const check = k => { if(F(k).src === 'ai') F(k).src = 'checked'; };
+const priceNum = () => parseInt(F('price').v.replace(/\D/g, ''), 10) || 0;
+const isFree = () => F('price').v === 'Free';
+const tagFor = x => x.src === 'you' ? '<span class="tag you">Edited by you</span>' : x.src === 'checked' ? '<span class="tag checked">✓ Checked</span>' : '<span class="tag">AI</span>';
+
+/* ---------- Chat shell: the app opens straight into the conversation ---------- */
+function openChat(){
+  app.innerHTML = `
+  <div class="view" id="chatView">
+    <div class="hdr">
+      <button class="back" id="back" aria-label="Back">←</button>
+      <div><b>Assistant</b><small id="hdrSub">Here to help you sell or donate</small></div>
+    </div>
+    <div class="thread" id="thread"></div>
+    <div class="bottom">
+      <div class="suggest" id="suggest" aria-label="Suggested answers"></div>
+      <div class="tray" id="tray"></div>
+      <div class="composer">
+        <button class="attach" id="attach" aria-label="Add photos">+</button>
+        <input id="input" autocomplete="off">
+        <button class="send" id="send">Send</button>
+      </div>
+    </div>
+  </div>
+  <div class="view" id="otherView" hidden></div>`;
+  thread = $('#thread');
+  $('#back').onclick = back;
+  $('#attach').onclick = addPhoto;
+  $('#send').onclick = onSend;
+  $('#input').addEventListener('keydown', e => { if(e.key === 'Enter') onSend(); });
+  $('#input').addEventListener('input', composer);
+  ask('start');
+}
+function showChat(){ $('#chatView').hidden = false; $('#otherView').hidden = true; }
+function showOther(html){ const o = $('#otherView'); o.innerHTML = html; o.hidden = false; $('#chatView').hidden = true; return o; }
+
+function scrollDown(){ requestAnimationFrame(() => thread.scrollTo({top:thread.scrollHeight, behavior:'smooth'})); }
+function add(html, cls){ const d = document.createElement('div'); d.className = cls; d.innerHTML = html; thread.appendChild(d); scrollDown(); return d; }
+async function bot(text, sub){
+  S.busy = true; composer();
+  const t = add('<i></i><i></i><i></i>', 'typing');
+  await wait(650); t.remove();
+  S.busy = false; composer();
+  return add(`<span class="av">✦</span><div><span class="txt">${text}</span>${sub ? `<span class="sub">${sub}</span>` : ''}</div>`, 'msg bot');
+}
+function me(html, noChange){
+  thread.querySelectorAll('.change').forEach(c => c.remove());
+  const d = add(`<span class="bub">${html}</span>`, 'msg me');
+  if(!noChange && S.hist.length > 1){
+    const c = document.createElement('button'); c.className = 'change'; c.textContent = 'Change';
+    c.onclick = back; d.appendChild(c);
+  }
+  return d;
+}
+/* Answer widgets in the thread; all of them are removed once the user answers */
+function widget(html, wide){ const w = add(html, 'widget' + (wide ? ' wide' : '')); S.widgets.push(w); return w; }
+function clearAnswers(){
+  S.widgets.forEach(w => w.remove()); S.widgets = [];
+  const s = $('#suggest'); if(s) s.innerHTML = '';
+}
+
+/* Answers: [[label, value?, html?, ghost?], ...] → onPick(value, label).
+   Rule: the suggestion row above the input is only used when every answer fits on one line,
+   with no horizontal scroll. Otherwise, or when inChat is set (prices, categories, field values),
+   the answers appear in the chat under the question. */
+function suggest(list, onPick, inChat){
+  const s = $('#suggest');
+  const bind = root => root.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { if(S.busy) return; const o = list[+b.dataset.i]; onPick(o[1] ?? o[0], o[0]); });
+  if(!inChat){
+    s.innerHTML = list.map((o, i) => `<button class="sug ${o[3] ? 'ghost' : ''}" data-i="${i}">${o[2] || esc(o[0])}</button>`).join('');
+    if(s.scrollWidth <= s.clientWidth + 1){ bind(s); return; }
+    s.innerHTML = '';
+  }
+  bind(widget(`<div class="opts">${list.map((o, i) => `<button class="opt ${o[3] ? 'ghost' : ''}" data-i="${i}">${o[2] || esc(o[0])}</button>`).join('')}</div>`));
+}
+const pickInThread = (list, onPick) => suggest(list.map(x => [x]), onPick, true);
+/* Answer helper: clear answers, echo the user's reply, then run fn */
+const answer = (label, fn) => { clearAnswers(); me(esc(label)); fn(); };
+
+/* ---------- Composer ---------- */
+function composer(){
+  const input = $('#input'), attach = $('#attach'), send = $('#send');
+  if(!input) return;
+  attach.disabled = S.busy || S.mode !== 'photos';
+  input.disabled = S.busy || S.mode === 'photos';
+  input.placeholder = S.busy ? 'Assistant is writing…' : S.mode === 'photos' ? 'Tap + to add photos' : (Q[S.cur] && Q[S.cur].placeholder) || 'Type a reply';
+  send.disabled = S.busy || (S.mode === 'photos' ? S.pending === 0 : !input.value.trim());
+}
+function addPhoto(){
+  if(S.pending + S.photos >= 8) return;
+  S.pending++;
+  $('#tray').insertAdjacentHTML('beforeend', `<div class="thumb">${S.photos + S.pending}</div>`);
+  composer();
+}
+function sendPhotos(){
+  const n = S.pending;
+  me(`<div class="thumbs">${Array.from({length:n}, (_, i) => `<div class="thumb">${S.photos + i + 1}</div>`).join('')}</div>`);
+  S.photos += n; S.pending = 0; $('#tray').innerHTML = '';
+  S.mode = 'chat'; clearAnswers();
+  return n;
+}
+function onSend(){
+  if($('#send').disabled) return;
+  if(S.mode === 'photos') return Q[S.cur].send();
+  const text = $('#input').value.trim();
+  $('#input').value = ''; composer();
+  typed(text);
+}
+
+/* ---------- Conversation engine ---------- */
+function ask(id){
+  thread.querySelectorAll('.msg, .widget').forEach(e => e.classList.add('old'));
+  clearAnswers();
+  S.cur = id;
+  if(!Q[id].transit) S.hist.push(id); // pass-through steps are skipped when going back
+  S.mode = Q[id].photos ? 'photos' : 'chat';
+  composer();
+  Q[id].ask();
+}
+async function back(){
+  if(S.busy) return;
+  if(S.hist.length < 2) return; // already at the first question
+  S.hist.pop();
+  const prev = S.hist.pop();
+  clearAnswers();
+  me('Go back', true);
+  await bot("Sure, let's go back.");
+  ask(prev);
+}
+function next(id){ const r = S.returnTo; S.returnTo = null; ask(r || id); }
+function reask(){ S.hist.pop(); ask(S.cur); }
+
+async function typed(text){
+  const t = text.toLowerCase();
+  if(/^(go )?back$|^undo$/.test(t)) return back();
+  // The current question gets the first chance to understand the reply.
+  if(Q[S.cur].text && Q[S.cur].text(text) !== false) return;
+  me(esc(text));
+  // Then a few things the assistant understands anywhere in the chat.
+  const num = t.match(/\d+/);
+  if(S.drafted && /\bfree\b/.test(t)){
+    set('price', 'Free'); S.min = null;
+    await bot("Done: it's now free.", "There's nothing to negotiate, so I'll offer it to the first buyer who can collect it.");
+    return reask();
+  }
+  if(S.drafted && /price|€|euro|cheaper|lower/.test(t)){
+    const v = num ? +num[0] : Math.max(priceNum() - 5, 1);
+    set('price', euro(v)); if(S.min && S.min >= v) S.min = null;
+    await bot(`Done: the price is now <b>€${v}</b>.`, 'Similar chairs near you sold for €35–55.');
+    return reask();
+  }
+  if(S.drafted && /damage|scratch|mark|stain|broken|crack/.test(t)){
+    set('cond', 'Fair, ' + text.replace(/^(there is|there's|it has)\s*/i, ''));
+    await bot('Thanks for being upfront. I updated the condition.', 'Honest listings protect you from disputes later.');
+    return reask();
+  }
+  await bot("I didn't quite catch that.", 'Tap one of the suggested answers, or tell me something like “price 40”.');
+  reask();
+}
+
+/* Listing card for the chat: everything visible, nothing hidden behind “show details” */
+const draftCard = () => {
+  const x = S.fields;
+  return `<div class="draft">
+    <div class="dhero"><span>${S.photos} photo${S.photos > 1 ? 's' : ''}</span></div>
+    <div class="dbody">
+      <div class="t">${esc(x.title.v)} ${tagFor(x.title)}</div>
+      <div class="p">${esc(x.price.v)} ${tagFor(x.price)}</div>
+      <p class="d">${esc(x.desc.v)} ${tagFor(x.desc)}</p>
+      <dl class="dl">${['cat','color','cond','loc'].map(k => `<dt>${x[k].label}</dt><dd>${esc(x[k].v)} ${tagFor(x[k])}</dd>`).join('')}
+        ${isFree() ? '' : `<dt>Offers</dt><dd>${S.min ? `Accept from €${S.min} <span class="tag you">Only you see this</span>` : 'Fixed price'}</dd>`}</dl>
+    </div></div>`;
+};
+
+/* Each question: ask() shows it; text() handles a typed reply (return false to fall through). */
+const Q = {
+  start:{
+    placeholder:'Or tell me what you need',
+    async ask(){
+      $('#back').style.visibility = 'hidden';
+      $('#hdrSub').textContent = 'Here to help you sell or donate';
+      await bot('Hey Marta! What do you want to do today?');
+      suggest([['Sell an item', 'sell'], ['Donate an item', 'donate']], (v, label) => answer(label, () => startWith(v)));
+    },
+    text(t){
+      if(/sell/i.test(t)) return answer(t, () => startWith('sell'));
+      if(/donat|give/i.test(t)) return answer(t, () => startWith('donate'));
+      return false;
+    }
+  },
+
+  photos:{
+    photos:true,
+    async ask(){
+      await bot(S.failed ? 'Could you add one more photo?' : 'Upload the item pictures',
+        S.failed ? 'In daylight, showing the whole item. Your other photos are kept.' : 'Show the whole item and any marks: it helps me describe it honestly.');
+      composer();
+    },
+    async send(){
+      sendPhotos();
+      if($('#simFail').checked && !S.failed){
+        S.failed = true;
+        await bot("I couldn't make out the item in these photos.", "The light may be too low, or the item is cut off. That's OK, nothing is lost.");
+        S.hist.pop(); ask('photos'); return;
+      }
+      ask('analyse');
+    }
+  },
+
+  analyse:{
+    transit:true,
+    async ask(){
+      await bot('Thanks! Looking at your photos…');
+      await wait(700);
+      S.drafted = true;
+      await bot("I've started your listing.", 'First, a few quick questions so I get the important things right.');
+      ask('identity');
+    }
+  },
+
+  identity:{
+    placeholder:'Or tell me what it is',
+    async ask(){
+      await bot(`Is this a <b>${esc(F('title').v.toLowerCase())}</b>?`);
+      suggest([["Yes, that's it", 'yes'], ['Not quite', 'no']], (v, label) => answer(label, () => {
+        if(v === 'yes'){ ['title','desc','cat','color'].forEach(check); next('condition'); }
+        else ask('identityFix');
+      }));
+    },
+    text(t){
+      if(/^(yes|yep|yeah|correct|right|that's it)\b/i.test(t)) return answer(t, () => { ['title','desc','cat','color'].forEach(check); next('condition'); });
+      if(/^(no|nope|not)\b/i.test(t)) return answer(t, () => ask('identityFix'));
+      answer(t, () => { set('title', t[0].toUpperCase() + t.slice(1)); bot('Got it, I updated the title.').then(() => next('condition')); });
+    }
+  },
+  identityFix:{
+    placeholder:'Type what it is',
+    async ask(){
+      await bot('What is it?', 'Pick the closest, or type it below.');
+      suggest(ALTS.title, v => answer(v, () => { set('title', v); bot('Thanks, I updated the title.').then(() => next('condition')); }), true);
+    },
+    text(t){ answer(t, () => { set('title', t[0].toUpperCase() + t.slice(1)); bot('Thanks, I updated the title.').then(() => next('condition')); }); }
+  },
+
+  condition:{
+    placeholder:'Or describe any damage',
+    async ask(){
+      await bot(S.backPhoto ? 'Is there anything else about its condition?' : "I couldn't see the back of the chair. Is there any damage?",
+                S.backPhoto ? '' : 'You can add a photo of the back, so I can see for myself. Being upfront protects you from disputes later.');
+      const list = [];
+      if(!S.backPhoto) list.push(['📷 Add a photo of the back', 'photo']);
+      list.push(["No, it's in good shape", 'Good, light wear'], ['Some light marks', 'Good, light marks on the back'], ['Visible damage', 'Fair, visible damage on the back']);
+      suggest(list, (v, label) => {
+        if(v === 'photo'){ clearAnswers(); me('Add a photo of the back'); return ask('backPhoto'); }
+        answer(label, () => {
+          if(v === 'Good, light wear') check('cond');
+          else setDamage(v);
+          bot(v === 'Good, light wear' ? 'Great.' : 'Thanks. I added that to the condition and description.').then(() => next('price'));
+        });
+      });
+    },
+    text(t){ answer(t, () => { set('cond', 'Fair, ' + t.replace(/^(there is|there's|it has)\s*/i, '')); bot('Thanks, I updated the condition.').then(() => next('price')); }); }
+  },
+  backPhoto:{
+    photos:true,
+    async ask(){
+      await bot('Take a photo of the back of the chair.', 'Tap + below. One photo is enough.');
+      suggest([['Skip, I’ll describe it', 'skip', null, true]], () => { clearAnswers(); me('Skip the photo'); S.backPhoto = true; ask('condition'); });
+    },
+    async send(){
+      sendPhotos(); S.backPhoto = true;
+      await bot('Thanks, I can see the back now.');
+      await wait(300);
+      setDamage('Good, light marks on the back', 'ai');
+      ask('backConfirm');
+    }
+  },
+  backConfirm:{
+    placeholder:'Or describe it yourself',
+    async ask(){
+      await bot('There are a few <b>light marks on the back of the frame</b>.', "I've added them to the condition and description. Is that right?");
+      suggest([["Yes, that's right", 'ok'], ["It's in better shape", 'better'], ["There's more damage", 'worse']], (v, label) => answer(label, () => {
+        if(v === 'ok'){ check('cond'); check('desc'); }
+        if(v === 'better'){ set('cond', 'Good, light wear'); set('desc', FIELDS.desc.v); }
+        if(v === 'worse'){ setDamage('Fair, visible damage on the back'); }
+        bot(v === 'ok' ? 'Great.' : 'Thanks, updated.').then(() => next('price'));
+      }));
+    },
+    text(t){ answer(t, () => { set('cond', 'Fair, ' + t); bot('Thanks, I updated the condition.').then(() => next('price')); }); }
+  },
+
+  price:{
+    placeholder:'Or type your own price',
+    async ask(){
+      const cur = isFree() ? 45 : priceNum();
+      await bot(`I suggest <b>€${cur}</b>.`, 'Similar chairs near you sold for €35–55. You decide.');
+      const list = [cur - 5, cur, cur + 5].map(n => [euro(n), euro(n), n === cur ? `€${n} <small>suggested</small>` : euro(n)]);
+      list.push(['Give it away for free', 'Free']);
+      suggest(list, v => answer(v === 'Free' ? 'Give it away for free' : v, () => {
+        if(v === F('price').v) check('price'); else set('price', v);
+        afterPrice();
+      }), true);
+    },
+    text(t){
+      if(/\bfree\b/i.test(t)) return answer(t, () => { set('price', 'Free'); afterPrice(); });
+      const n = t.match(/\d+/); if(!n) return false;
+      answer(t, () => { set('price', euro(n[0])); bot(`Done: <b>€${n[0]}</b>.`).then(afterPrice); });
+    }
+  },
+
+  negotiate:{
+    placeholder:'Or type your lowest price',
+    async ask(){
+      const p = priceNum();
+      await bot('How low are you willing to go?',
+        `I'll handle offers for you: I accept any offer from your lowest price, and counter lower ones. Buyers never see this number.`);
+      const mins = [...new Set([9, 8, 7].map(n => Math.round(p * n / 10)))].filter(n => n < p);
+      suggest([...mins.map(n => [euro(n), n]), ['No offers, fixed price', 0, null, true]], (v, label) => answer(label, () => {
+        S.min = v || null;
+        bot(v ? `Done. I'll accept offers from <b>€${v}</b> and counter anything lower.` : "OK, I'll tell buyers the price is fixed.").then(() => next('review'));
+      }), true);
+    },
+    text(t){
+      const n = t.match(/\d+/); if(!n) return false;
+      const v = +n[0], p = priceNum();
+      if(v >= p){ answer(t, () => bot(`That's not below your price of €${p}.`, 'Type a lower number, or choose “No offers, fixed price”.').then(reask)); return; }
+      answer(t, () => { S.min = v; bot(`Done. I'll accept offers from <b>€${v}</b> and counter anything lower.`).then(() => next('review')); });
+    }
+  },
+
+  review:{
+    placeholder:'Or tell me what to change',
+    async ask(){
+      await bot("Thanks! Here's your listing.", 'Check the rest of the details. Everything marked AI came from your photos.');
+      add(draftCard(), 'widget wide'); // the card stays in the thread
+      suggest([['All good', 'ok'], ['Change something', 'change']], (v, label) => answer(label, () => {
+        if(v === 'change') return ask('changePick');
+        ['loc','cat','color','desc','cond','title'].forEach(check);
+        if(S.collectDone){ bot('Your timing and collection choices are kept.').then(preview); }
+        else ask('urgency');
+      }));
+    }
+  },
+  changePick:{
+    async ask(){
+      await bot('What would you like to change?');
+      suggest([['Title','title'],['Price','price'],['Lowest offer','min'],['Description','desc'],['Condition','cond'],['Category','cat'],['Colour','color'],['Location','loc']], (k, label) => answer(label, () => {
+        if(k === 'cond'){ S.returnTo = 'review'; return ask('condition'); }
+        if(k === 'price') return ask('price');
+        if(k === 'cat') return ask('catTop');
+        if(k === 'min'){ if(isFree()) return bot("It's free, so there are no offers to handle.").then(() => ask('review')); return ask('negotiate'); }
+        S.field = k; ask('changeField');
+      }), true);
+    }
+  },
+  changeField:{
+    placeholder:'Or type it yourself',
+    async ask(){
+      const x = F(S.field);
+      await bot(`Pick a new ${x.label.toLowerCase()}, or type it below.`, `Now: “${esc(x.v)}”`);
+      suggest(ALTS[S.field], (v, label) => answer(label, () => {
+        // A rewritten description must keep any damage the seller told us about.
+        if(S.field === 'desc' && F('cond').v !== FIELDS.cond.v && !/back/.test(v)) v += ' ' + F('cond').v.replace(/^(Good|Fair), /, '').replace(/^./, c => c.toUpperCase()) + '.';
+        set(S.field, v);
+        bot('Done.').then(() => ask('review'));
+      }), true);
+    },
+    text(t){ answer(t, () => { set(S.field, t); bot('Done.').then(() => ask('review')); }); }
+  },
+
+  catTop:{
+    placeholder:'Or type a category, e.g. “desks”',
+    async ask(){
+      await bot('Which category fits best?', `Now: “${esc(F('cat').v)}”. My best guesses come first.`);
+      const rest = Object.keys(CATEGORIES).filter(c => !CAT_GUESSES.includes(c));
+      pickInThread([...CAT_GUESSES, ...rest], c => answer(c, () => { S.catTop = c; ask('catSub'); }));
+    },
+    text(t){
+      // Typed: match a subcategory or a category by name.
+      const exact = t.toLowerCase().trim(), q = exact.replace(/s$/, '');
+      const all = Object.entries(CATEGORIES).flatMap(([top, subs]) => subs.map(sub => [top, sub]));
+      const hit = all.find(([, s]) => s.toLowerCase() === exact) || all.find(([, s]) => s.toLowerCase().includes(q));
+      if(hit) return answer(t, () => { set('cat', `${hit[0]} › ${hit[1]}`); bot(`Done: <b>${esc(hit[0])} › ${esc(hit[1])}</b>.`).then(() => ask('review')); });
+      const top = Object.keys(CATEGORIES).find(c => c.toLowerCase().startsWith(q));
+      if(top) return answer(t, () => { S.catTop = top; ask('catSub'); });
+      return false;
+    }
+  },
+  catSub:{
+    async ask(){
+      await bot(`And within ${esc(S.catTop)}?`);
+      pickInThread(CATEGORIES[S.catTop], s => answer(s, () => {
+        set('cat', `${S.catTop} › ${s}`);
+        bot(`Done: <b>${esc(S.catTop)} › ${esc(s)}</b>.`).then(() => ask('review'));
+      }));
+    }
+  },
+
+  urgency:{
+    async ask(){
+      await bot('When do you want to sell this by?', 'This helps me plan collection and how I handle offers.');
+      suggest(Object.entries(URGENCY).map(([k, u]) => [u.label, k]), (k, label) => answer(label, () => {
+        S.urgency = k;
+        bot(URGENCY[k].reply).then(() => ask('days'));
+      }));
+    }
+  },
+  days:{
+    async ask(){
+      const u = URGENCY[S.urgency], list = dayList(u.days);
+      S.days = S.days.filter(d => list.some(x => x.id === d));
+      await bot('When can buyers collect it?',
+        `Optional. Pick the days that suit you in the next ${u.days === 3 ? '3 days' : u.days === 7 ? 'week' : '2 weeks'}. They won't be on the listing: I only share them when a buyer asks when they can collect. If you skip, I'll ask each buyer for a time and check it with you.`);
+      const w = widget(`<div class="opts">${list.map(d => `<button class="opt ${S.days.includes(d.id) ? 'on' : ''}" data-d="${d.id}">${d.short}</button>`).join('')}</div>
+        <div><button class="btn primary" id="daysNext" ${S.days.length ? '' : 'disabled'}>Next</button></div>`);
+      const sync = () => { S.days = list.map(d => d.id).filter(id => w.querySelector(`[data-d="${id}"]`).classList.contains('on')); $('#daysNext').disabled = !S.days.length; };
+      w.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { b.classList.toggle('on'); sync(); });
+      $('#daysNext').onclick = () => {
+        Object.keys(S.slots).forEach(d => { if(!S.days.includes(d)) delete S.slots[d]; });
+        clearAnswers(); me(S.days.map(id => id.replace(/ \w+$/, '')).join(', ')); ask('slots');
+      };
+      const sugg = [["Skip, I'll arrange it with buyers", 'skip', null, true]];
+      if(list.some(d => d.weekend)) sugg.unshift(['Weekends only', 'weekend']);
+      suggest(sugg, v => {
+        if(v === 'weekend'){ w.querySelectorAll('[data-d]').forEach(b => b.classList.toggle('on', list.find(d => d.id === b.dataset.d).weekend)); sync(); return; }
+        S.days = []; S.slots = {};
+        answer("Skip, I'll arrange it with buyers", () => { S.collectDone = true; bot("No problem. I'll ask buyers when they can come and check with you.").then(preview); });
+      });
+    }
+  },
+  slots:{
+    async ask(){
+      await bot('Which times suit you on those days?', 'Pick at least one slot per day.');
+      const w = widget(S.days.map(d => `<div class="dayblock"><b>${d.replace(/ \w+$/, '')}</b><div class="opts">${SLOTS.map(t => `<button class="opt ${(S.slots[d] || []).includes(t) ? 'on' : ''}" data-d="${d}" data-t="${t}">${t}</button>`).join('')}</div></div>`).join('') +
+        `<div><button class="btn primary" id="slotsNext">See preview</button></div>`);
+      const sync = () => {
+        S.days.forEach(d => S.slots[d] = SLOTS.filter(t => w.querySelector(`[data-d="${d}"][data-t="${t}"]`).classList.contains('on')));
+        $('#slotsNext').disabled = !S.days.every(d => S.slots[d].length);
+      };
+      w.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { b.classList.toggle('on'); sync(); });
+      sync();
+      $('#slotsNext').onclick = () => { clearAnswers(); me('Done'); S.collectDone = true; preview(); };
+      suggest([['Any time on those days', 'all'], ['Evenings only', 'eve']], v => {
+        w.querySelectorAll('[data-t]').forEach(b => b.classList.toggle('on', v === 'all' || b.dataset.t === '18–21'));
+        sync();
+      });
+    }
+  },
+
+  // Re-entry from the preview's Edit button
+  editFromPreview:{
+    transit:true,
+    async ask(){ await bot('Sure. What would you like to change?'); ask('changePick'); }
+  }
+};
+
+async function startWith(v){
+  if(v === 'donate'){
+    await bot("Donating isn't part of this prototype yet.", 'For now, you can sell an item, or give it away for free once I know what it is.');
+    return reask();
+  }
+  $('#back').style.visibility = 'visible';
+  $('#hdrSub').textContent = '🔒 Draft. Only you can see it until you upload.';
+  await bot("Great, let's get it listed.");
+  ask('photos');
+}
+
+function setDamage(v, src='you'){
+  set('cond', v, src);
+  const base = F('desc').v.replace(/ (Some light marks|Visible damage) on the back[^.]*\./, '');
+  set('desc', base + (v.startsWith('Fair') ? ' Visible damage on the back, shown in the photos.' : ' Some light marks on the back, shown in the photos.'), src);
+}
+function afterPrice(){
+  if(isFree()){ S.min = null; bot("Lovely. There's nothing to negotiate, so I'll offer it to the first buyer who can collect it.").then(() => next('review')); }
+  else ask('negotiate');
+}
+
+/* ---------- Preview: the listing as buyers will see it ---------- */
+function listingHTML(editable){
+  const x = S.fields, e = s => editable ? `<button class="edit" data-edit="${s}">Edit</button>` : '';
+  const collect = S.days.length ? S.days.map(d => `<div>${d}: ${S.slots[d].join(', ')}</div>`).join('') : "Flexible: I'll ask each buyer for a time and check it with you.";
+  const priceNote = isFree() ? '' : S.min ? '<small>Open to offers</small>' : '<small>Fixed price</small>';
+  return `<div class="hero"><span class="count">1 / ${S.photos}</span></div>
+    <div class="sec">${e('title')}<h2>${esc(x.title.v)}</h2><div class="price">${esc(x.price.v)}${priceNote}</div></div>
+    <div class="sec">${e('desc')}<h4>Description</h4><p>${esc(x.desc.v)}</p></div>
+    <div class="sec">${e('details')}<h4>Details</h4><dl class="dl">${['cat','color','cond','loc'].map(k => `<dt>${x[k].label}</dt><dd>${esc(x[k].v)}</dd>`).join('')}</dl></div>
+    ${editable ? `<div class="sec seller">${e('seller')}<h4>🔒 Only you see this</h4>
+      <dl class="dl"><dt>Sell by</dt><dd>${URGENCY[S.urgency].label}</dd>
+      <dt>Collection</dt><dd>${collect}<div style="font-size:12px;color:var(--muted);margin-top:2px">Shared with a buyer only when they ask when they can collect it.</div></dd>
+      <dt>Offers</dt><dd>${isFree() ? 'Free: first buyer who can collect' : S.min ? `I accept offers from €${S.min} and counter lower ones` : 'Fixed price, no offers'}</dd></dl></div>` : ''}`;
+}
+function preview(){
+  const o = showOther(`
+    <div class="topbar"><button class="back" id="pvBack" aria-label="Back to chat">←</button><b>Preview</b></div>
+    <div class="scroll">${listingHTML(true)}</div>
+    <div class="lock">🔒 This is what buyers will see. Nothing is public yet.</div>
+    <div class="actions"><button class="btn" id="pvEdit">Edit</button><button class="btn primary" id="up">Upload item</button></div>`);
+  const toChat = id => { showChat(); ask(id); };
+  $('#pvBack', o).onclick = () => toChat('review');
+  $('#pvEdit', o).onclick = () => toChat('editFromPreview');
+  o.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => {
+    const k = b.dataset.edit;
+    if(k === 'seller') return toChat('urgency');
+    if(k === 'details' || k === 'title') return toChat('editFromPreview'); // title + price share a section
+    showChat(); S.field = k; ask('changeField');
+  });
+  $('#up', o).onclick = live;
+}
+
+/* ---------- Item live ---------- */
+function live(){
+  const o = showOther(`
+    <div class="live">
+      <div class="tick">✓</div>
+      <h2>Your armchair is live</h2>
+      <p>Buyers nearby can see it now.</p>
+      <p>${isFree() ? "I'll let you know when someone wants to collect it." : S.min ? `I'll handle offers from €${S.min} for you and let you know when it's sold.` : "I'll let you know when someone wants to buy it."}</p>
+      <div class="stack"><button class="btn primary block" id="view">View post</button><button class="btn block" id="home">Back to home</button></div>
+    </div>`);
+  $('#home', o).onclick = reset;
+  $('#view', o).onclick = () => {
+    const p = showOther(`<div class="topbar"><b>Your listing</b><span class="badge" style="margin-left:auto">Live</span></div>
+      <div class="scroll">${listingHTML(false)}</div>
+      <div class="actions"><button class="btn block" id="home2">Back to home</button></div>`);
+    $('#home2', p).onclick = reset;
+  };
+}
+
+document.getElementById('restart').onclick = reset;
+reset();
+</script>
+</body>
+</html>
