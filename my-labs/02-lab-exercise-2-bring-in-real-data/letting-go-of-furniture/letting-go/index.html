@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Letting go · your listing</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css">
+<style>
+  :root { --ink: #24211d; --muted: #706a62; --line: #e8e3dc; --brand: #b4552d; --soft: #faf7f3; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.5 system-ui, -apple-system, sans-serif; color: var(--ink); background: var(--soft); }
+  main { max-width: 420px; margin: 0 auto; padding: 24px 16px; }
+  .brand { font-weight: 700; color: var(--brand); letter-spacing: -0.3px; }
+  h1 { font-size: 22px; margin: 6px 0 16px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+  .photo { height: 160px; border-radius: 10px; background: linear-gradient(135deg, #e9dccb, #d8c3a5); display: grid; place-items: center; color: #7a6650; font-size: 14px; margin-bottom: 12px; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .price { font-size: 28px; font-weight: 700; color: var(--brand); }
+  .muted { color: var(--muted); font-size: 14px; }
+  .empty { border: 1.5px dashed #d9cfc3; background: #fdfbf8; color: var(--muted); text-align: center; padding: 18px 14px; border-radius: 12px; font-size: 14px; }
+  .area { font-size: 20px; font-weight: 700; margin: 4px 0 2px; }
+  .distance { font-size: 17px; font-weight: 700; color: var(--brand); margin: 8px 0 2px; }
+  .credit { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  input { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; }
+  button { width: 100%; border: 0; border-radius: 12px; padding: 14px; font: inherit; font-weight: 600; color: #fff; background: var(--brand); margin-top: 10px; }
+  button:disabled { opacity: 0.6; }
+  /* The map: a soft circle around the area, never a pin on the door. */
+  #map { height: 200px; border-radius: 10px; margin-top: 12px; background: #f1ece5; }
+  #map.hidden { display: none; }
+  /* Shops and pickup points: a list with a small heading per group. */
+  .places { list-style: none; padding: 0; margin: 10px 0 0; }
+  .places li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .places li:first-child { border-top: 0; }
+  .places .kind { color: var(--muted); }
+  .places .walk { font-weight: 600; color: var(--brand); white-space: nowrap; }
+  .group-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin: 14px 0 0; }
+  /* The café dot when the map is Mapbox. */
+  .cafe-dot { width: 14px; height: 14px; border-radius: 50%; background: #3f6b4a; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,0.15); }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">Letting go</div>
+  <h1>Your listing</h1>
+
+  <section class="card">
+    <div class="photo">Photo of the armchair</div>
+    <div class="row"><strong>Armchair, good condition</strong><span class="price">€35</span></div>
+    <div class="muted">€80 new, 3 years old.</div>
+  </section>
+
+  <section class="card">
+    <label for="address">Where can buyers pick it up?</label>
+    <input id="address" placeholder="e.g. Rua de Arroios, Lisboa" value="Rua de Arroios, Lisboa">
+    <button type="button" id="lookup">Use this address</button>
+  </section>
+
+  <section class="card">
+    <strong>What buyers will see</strong>
+    <div id="result" class="empty">Area not connected yet. Ask the AI agent to turn the address into a neighbourhood, never the street.</div>
+    <div id="map" class="hidden"></div>
+  </section>
+
+  <section class="card">
+    <strong>Shops &amp; pickup points nearby</strong>
+    <div id="nearby" class="empty">Shops and pickup points near the armchair will appear here once the area is found.</div>
+  </section>
+
+  <section class="card">
+    <label for="buyer">Where is the buyer coming from?</label>
+    <input id="buyer" placeholder="e.g. Alvalade, Lisboa" value="Alvalade, Lisboa">
+    <button type="button" id="distanceButton">How far is it?</button>
+    <div id="distance" class="empty">Type the buyer's area to see how far the armchair is.</div>
+  </section>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+<!-- Your Mapbox token lives in config.js (copy config.example.js). Missing file = no Mapbox. -->
+<script src="config.js"></script>
+<script>
+  // ---- Mapbox or OpenStreetMap? ----
+  // With a public Mapbox token in config.js, the map, the address lookup and the
+  // drive time come from Mapbox. Without one, everything falls back to the free
+  // OpenStreetMap services (Leaflet + Nominatim) so the page always works.
+  const MAPBOX_TOKEN = String((window.LETTING_GO_CONFIG || {}).MAPBOX_TOKEN || "").trim();
+  if (MAPBOX_TOKEN.startsWith("sk.")) {
+    console.warn("config.js has a SECRET Mapbox token (sk.). Use a public one (pk.) in the browser.");
+  }
+  const USE_MAPBOX = MAPBOX_TOKEN !== "" && !MAPBOX_TOKEN.startsWith("sk.") && !!window.mapboxgl;
+  // The team's own Mapbox Studio style. Needs a token from the same Mapbox account
+  // (or make the style public in Mapbox Studio).
+  const MAPBOX_STYLE = "mapbox://styles/alexandra-morodo/cmwqdit1i00ef01s60vqig4c6";
+  const MAP_CREDIT =USE_MAPBOX ? "© Mapbox © OpenStreetMap contributors" : "© OpenStreetMap contributors";
+
+  // The area box: turns a typed address into a neighbourhood + city, never the street.
+  const addressInput = document.getElementById("address");
+  const lookupButton = document.getElementById("lookup");
+  const resultBox = document.getElementById("result");
+  const mapBox = document.getElementById("map");
+
+  // The "Shops & pickup points" box: useful places near the armchair.
+  const nearbyBox = document.getElementById("nearby");
+
+  // The distance box: how far the buyer's area is from the seller's area.
+  const buyerInput = document.getElementById("buyer");
+  const distanceButton = document.getElementById("distanceButton");
+  const distanceBox = document.getElementById("distance");
+
+  // How wide the circle is, in metres: big enough to hide the door, small enough to be useful.
+  const AREA_RADIUS_METRES = 400;
+
+  // How many shops / pickup points to show per group, and how far to look for them.
+  const NEARBY_TO_SHOW = 6;
+  const NEARBY_SEARCH_METRES = 1600; // about a 20 minute walk
+
+  // Walking speed used for the "min walk" line: about 80 metres a minute.
+  const WALK_METRES_PER_MINUTE = 80;
+
+  let map = null;      // the map itself, made once
+  let circle = null;   // the soft area circle on it
+  let cafeDot = null;  // a small dot on the nearest café
+  let sellerPoint = null; // where the armchair is, once the address is found
+
+  function showMessage(text) {
+    resultBox.className = "empty";
+    resultBox.textContent = text;
+    mapBox.classList.add("hidden");
+  }
+
+  function showArea(neighbourhood, city, lat, lon) {
+    resultBox.className = "";
+    resultBox.innerHTML = "";
+    const area = document.createElement("div");
+    area.className = "area";
+    area.textContent = city ? neighbourhood + " · " + city : neighbourhood;
+    const hint = document.createElement("div");
+    hint.className = "muted";
+    hint.textContent = "Buyers see this area only. The street stays private.";
+    const point = document.createElement("div");
+    point.className = "muted";
+    point.textContent = "Roughly " + lat.toFixed(2) + ", " + lon.toFixed(2) + " on the map.";
+    const credit = document.createElement("div");
+    credit.className = "credit";
+    credit.textContent = MAP_CREDIT;
+    resultBox.append(area, hint, point, credit);
+
+    showOnMap(lat, lon);
+  }
+
+  // Draws the area on the map, as a circle rather than a pin.
+  function showOnMap(lat, lon) {
+    if (USE_MAPBOX) return showOnMapbox(lat, lon);
+    mapBox.classList.remove("hidden");
+
+    if (!map) {
+      map = L.map("map", { scrollWheelZoom: false }).setView([lat, lon], 14);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "© OpenStreetMap contributors"
+      }).addTo(map);
+    } else {
+      map.setView([lat, lon], 14);
+    }
+
+    if (circle) circle.remove();
+    circle = L.circle([lat, lon], {
+      radius: AREA_RADIUS_METRES,
+      color: "#b4552d",
+      weight: 2,
+      fillColor: "#b4552d",
+      fillOpacity: 0.15
+    }).addTo(map);
+
+    // The map box was hidden while it was made, so tell it to measure itself.
+    setTimeout(() => map.invalidateSize(), 50);
+  }
+
+  // ---- The Mapbox version of the map ----
+  let mapReady = null; // resolves once the Mapbox style has loaded
+
+  function showOnMapbox(lat, lon) {
+    mapBox.classList.remove("hidden");
+    if (!map) {
+      mapboxgl.accessToken = MAPBOX_TOKEN;
+      map = new mapboxgl.Map({
+        container: "map",
+        style: MAPBOX_STYLE,
+        center: [lon, lat],
+        zoom: 14,
+        scrollZoom: false
+      });
+      mapReady = new Promise((resolve) => map.on("load", resolve));
+      map.on("error", (event) => console.warn("Mapbox map error:", event.error && event.error.message));
+    } else {
+      map.jumpTo({ center: [lon, lat], zoom: 14 });
+    }
+
+    mapReady.then(() => {
+      const area = circlePolygon(lat, lon, AREA_RADIUS_METRES);
+      if (map.getSource("area")) {
+        map.getSource("area").setData(area);
+      } else {
+        map.addSource("area", { type: "geojson", data: area });
+        map.addLayer({ id: "area-fill", type: "fill", source: "area",
+          paint: { "fill-color": "#b4552d", "fill-opacity": 0.15 } });
+        map.addLayer({ id: "area-line", type: "line", source: "area",
+          paint: { "line-color": "#b4552d", "line-width": 2 } });
+      }
+    });
+
+    // The map box was hidden while it was made, so tell it to measure itself.
+    setTimeout(() => map.resize(), 50);
+  }
+
+  // A circle drawn as a 64-sided shape, because Mapbox has no "circle in metres".
+  function circlePolygon(lat, lon, metres) {
+    const points = [];
+    const dLat = metres / 111320;
+    const dLon = metres / (111320 * Math.cos(lat * Math.PI / 180));
+    for (let i = 0; i <= 64; i++) {
+      const angle = (i / 64) * 2 * Math.PI;
+      points.push([lon + dLon * Math.cos(angle), lat + dLat * Math.sin(angle)]);
+    }
+    return { type: "Feature", geometry: { type: "Polygon", coordinates: [points] } };
+  }
+
+  // A small dot for the nearest café, so buyers can see it on the map.
+  function showCafeDot(cafe) {
+    if (!map) return;
+    if (USE_MAPBOX) {
+      if (cafeDot) cafeDot.remove();
+      cafeDot = null;
+      if (!cafe) return;
+      const dot = document.createElement("div");
+      dot.className = "cafe-dot";
+      dot.title = "Café: " + cafe.name;
+      cafeDot = new mapboxgl.Marker({ element: dot }).setLngLat([cafe.lon, cafe.lat]).addTo(map);
+      return;
+    }
+    if (cafeDot) cafeDot.remove();
+    if (!cafe) return;
+    cafeDot = L.circleMarker([cafe.lat, cafe.lon], {
+      radius: 6,
+      color: "#fff",
+      weight: 2,
+      fillColor: "#3f6b4a",
+      fillOpacity: 1
+    }).addTo(map).bindTooltip("Café: " + cafe.name);
+  }
+
+  // Turns a typed address into { neighbourhood, city, lat, lon }, or null.
+  // Mapbox first when there's a token; if Mapbox fails (bad token, offline),
+  // quietly falls back to Nominatim so the seller can carry on.
+  async function findPlace(typed) {
+    if (USE_MAPBOX) {
+      try {
+        return await findPlaceMapbox(typed);
+      } catch (error) {
+        console.warn("Mapbox geocoding failed, using Nominatim instead:", error);
+      }
+    }
+    return findPlaceNominatim(typed);
+  }
+
+  // Mapbox Geocoding v6: one result, with its neighbourhood and city.
+  async function findPlaceMapbox(typed) {
+    const stopWaiting = new AbortController();
+    const timer = setTimeout(() => stopWaiting.abort(), 8000);
+    try {
+      const url = "https://api.mapbox.com/search/geocode/v6/forward?limit=1&q="
+        + encodeURIComponent(typed) + "&access_token=" + encodeURIComponent(MAPBOX_TOKEN);
+      const response = await fetch(url, { signal: stopWaiting.signal });
+      if (!response.ok) throw new Error("Mapbox answered " + response.status);
+      const data = await response.json();
+      const feature = (data.features || [])[0];
+      if (!feature) return null;
+
+      const props = feature.properties || {};
+      const ctx = props.context || {};
+      const [lon, lat] = feature.geometry.coordinates;
+      // If the result *is* a neighbourhood (e.g. "Alvalade"), use its own name.
+      const ownName = ["neighborhood", "locality", "district"].includes(props.feature_type) ? props.name : "";
+      const neighbourhood = ownName
+        || (ctx.neighborhood && ctx.neighborhood.name)
+        || (ctx.locality && ctx.locality.name)
+        || (ctx.district && ctx.district.name)
+        || (ctx.place && ctx.place.name)
+        || props.name || "Lisboa";
+      const city = (ctx.place && ctx.place.name) || (props.feature_type === "place" ? props.name : "");
+      return { neighbourhood, city: city === neighbourhood ? "" : city, lat: Number(lat), lon: Number(lon) };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // Mapbox Directions: real driving time and distance between two points, or null.
+  async function driveBetween(a, b) {
+    if (!USE_MAPBOX) return null;
+    const stopWaiting = new AbortController();
+    const timer = setTimeout(() => stopWaiting.abort(), 8000);
+    try {
+      const url = "https://api.mapbox.com/directions/v5/mapbox/driving/"
+        + a.lon + "," + a.lat + ";" + b.lon + "," + b.lat
+        + "?overview=false&access_token=" + encodeURIComponent(MAPBOX_TOKEN);
+      const response = await fetch(url, { signal: stopWaiting.signal });
+      if (!response.ok) return null;
+      const route = ((await response.json()).routes || [])[0];
+      return route ? { metres: route.distance, minutes: Math.max(1, Math.round(route.duration / 60)) } : null;
+    } catch (error) {
+      return null; // fall back to the straight-line guess
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // Asks Nominatim for one place and gives back its area name and point, or null.
+  async function findPlaceNominatim(typed) {
+    // Give up after 8 seconds so the page never hangs.
+    const stopWaiting = new AbortController();
+    const timer = setTimeout(() => stopWaiting.abort(), 8000);
+    try {
+      const url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&q="
+        + encodeURIComponent(typed);
+      const response = await fetch(url, { signal: stopWaiting.signal });
+      const places = await response.json();
+      if (!places.length) return null;
+
+      const place = places[0];
+      const parts = place.address || {};
+      const neighbourhood = parts.suburb || parts.neighbourhood || parts.city_district || parts.town || parts.village || parts.city || "Lisboa";
+      const city = parts.city || parts.town || parts.village || parts.municipality || "";
+      return { neighbourhood, city, lat: Number(place.lat), lon: Number(place.lon) };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function lookUpArea() {
+    const typed = addressInput.value.trim();
+    if (!typed) {
+      showMessage("Type an address first, e.g. Rua de Arroios, Lisboa.");
+      return;
+    }
+
+    lookupButton.disabled = true;
+    showMessage("Looking up the area…");
+    showNearbyMessage("Looking for shops and pickup points…");
+
+    try {
+      const place = await findPlace(typed);
+      if (!place) {
+        showMessage("Couldn't find that address. Try adding the city, e.g. Rua de Arroios, Lisboa.");
+        showNearbyMessage("No area found, so nothing nearby to show yet.");
+        return;
+      }
+      sellerPoint = { lat: place.lat, lon: place.lon };
+      showArea(place.neighbourhood, place.city, place.lat, place.lon);
+      showNearby(place.lat, place.lon);
+    } catch (error) {
+      showMessage("The map service didn't answer in time. Try again in a moment.");
+      showNearbyMessage("The map service didn't answer in time. Try again in a moment.");
+    } finally {
+      lookupButton.disabled = false;
+    }
+  }
+
+  // ---- Shops & pickup points nearby ----
+
+  function showNearbyMessage(text) {
+    nearbyBox.className = "empty";
+    nearbyBox.textContent = text;
+  }
+
+  // Three kinds of place a buyer might need: somewhere to buy packing tape,
+  // a shop that holds parcels (a pickup point), and a place to stop for a coffee
+  // or park a van while loading.
+  const NEARBY_GROUPS = [
+    {
+      title: "Shops for packing and moving",
+      tags: ["shop:hardware", "shop:doityourself", "shop:storage_rental", "shop:car_repair"],
+      empty: "No hardware or DIY shop within a 20 minute walk."
+    },
+    {
+      title: "Pickup points for parcels",
+      tags: ["amenity:post_office", "amenity:parcel_locker", "shop:convenience", "shop:copyshop"],
+      empty: "No post office or parcel locker within a 20 minute walk."
+    },
+    {
+      title: "Cafés and somewhere to park a van",
+      tags: ["amenity:cafe", "amenity:parking", "amenity:fuel"],
+      empty: "No café or parking within a 20 minute walk."
+    }
+  ];
+
+  // Asks Photon for one kind of place near a point.
+  async function findNearbyOfKind(lat, lon, tags) {
+    const stopWaiting = new AbortController();
+    const timer = setTimeout(() => stopWaiting.abort(), 8000);
+    try {
+      // Photon wants categories as include=osm.amenity.cafe,osm.shop.hardware (any of them).
+      const tagQuery = "&include=" + tags.map((tag) => "osm." + tag.replace(":", ".")).join(",");
+      const url = "https://photon.komoot.io/api/?limit=20&lat=" + lat + "&lon=" + lon + tagQuery;
+      const response = await fetch(url, { signal: stopWaiting.signal });
+      const data = await response.json();
+      return (data.features || []).map((feature) => {
+        const props = feature.properties || {};
+        const coords = (feature.geometry || {}).coordinates || [];
+        return {
+          name: props.name || props.street || "",
+          kind: describeShop(props),
+          lat: Number(coords[1]),
+          lon: Number(coords[0])
+        };
+      }).filter((place) => place.name && !isNaN(place.lat) && !isNaN(place.lon));
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // Plain words for what kind of shop or pickup point it is.
+  function describeShop(photonProps) {
+    // Photon says what a place is as osm_key ("amenity") + osm_value ("cafe").
+    const props = { [photonProps.osm_key]: photonProps.osm_value };
+    if (props.amenity === "post_office") return "Post office";
+    if (props.amenity === "parcel_locker") return "Parcel locker";
+    if (props.amenity === "cafe") return "Café";
+    if (props.amenity === "parking") return "Parking";
+    if (props.amenity === "fuel") return "Petrol station";
+    if (props.shop === "hardware") return "Hardware shop";
+    if (props.shop === "doityourself") return "DIY shop";
+    if (props.shop === "storage_rental") return "Storage";
+    if (props.shop === "car_repair") return "Van hire / garage";
+    if (props.shop === "convenience") return "Convenience shop";
+    if (props.shop === "copyshop") return "Print shop";
+    return "Shop";
+  }
+
+  async function showNearby(lat, lon) {
+    showNearbyMessage("Looking for shops and pickup points…");
+    showCafeDot(null);
+    try {
+      const groups = await Promise.all(
+        NEARBY_GROUPS.map((group) => findNearbyOfKind(lat, lon, group.tags))
+      );
+
+      nearbyBox.className = "";
+      nearbyBox.innerHTML = "";
+      let anythingFound = false;
+      let nearestCafe = null;
+
+      groups.forEach((found, index) => {
+        const group = NEARBY_GROUPS[index];
+        const title = document.createElement("div");
+        title.className = "group-title";
+        title.textContent = group.title;
+        nearbyBox.append(title);
+
+        // Keep only the ones close enough to walk to, nearest first.
+        const nearest = found
+          .map((place) => ({ ...place, metres: metresBetween({ lat, lon }, place) }))
+          .filter((place) => place.metres <= NEARBY_SEARCH_METRES)
+          .sort((a, b) => a.metres - b.metres)
+          .slice(0, NEARBY_TO_SHOW);
+
+        if (!nearest.length) {
+          const none = document.createElement("div");
+          none.className = "muted";
+          none.textContent = group.empty;
+          nearbyBox.append(none);
+          return;
+        }
+
+        anythingFound = true;
+        const list = document.createElement("ul");
+        list.className = "places";
+        for (const place of nearest) {
+          list.append(makePlaceRow(place.name, place.kind, place.metres));
+        }
+        nearbyBox.append(list);
+
+        // Remember the closest café so it can be dotted on the map.
+        if (group.tags.includes("amenity:cafe")) {
+          nearestCafe = nearest.find((place) => place.kind === "Café") || null;
+        }
+      });
+
+      if (anythingFound) {
+        const credit = document.createElement("div");
+        credit.className = "credit";
+        credit.textContent = "Places from OpenStreetMap via Photon · © OpenStreetMap contributors";
+        nearbyBox.append(credit);
+      }
+
+      showCafeDot(nearestCafe);
+    } catch (error) {
+      showNearbyMessage("Couldn't reach the place finder. Try again in a moment.");
+    }
+  }
+
+  // One row: name · kind on the left, walk time on the right.
+  function makePlaceRow(name, kind, metres) {
+    const item = document.createElement("li");
+    const label = document.createElement("span");
+    label.textContent = name + " ";
+    const kindSpan = document.createElement("span");
+    kindSpan.className = "kind";
+    kindSpan.textContent = "· " + kind;
+    label.append(kindSpan);
+    const walk = document.createElement("span");
+    walk.className = "walk";
+    walk.textContent = Math.max(1, Math.round(metres / WALK_METRES_PER_MINUTE)) + " min walk";
+    item.append(label, walk);
+    return item;
+  }
+
+  // Straight-line distance in metres between two points on the map.
+  function metresBetween(a, b) {
+    const earthRadius = 6371000;
+    const toRadians = (degrees) => degrees * Math.PI / 180;
+    const dLat = toRadians(b.lat - a.lat);
+    const dLon = toRadians(b.lon - a.lon);
+    const h = Math.sin(dLat / 2) ** 2
+      + Math.cos(toRadians(a.lat)) * Math.cos(toRadians(b.lat)) * Math.sin(dLon / 2) ** 2;
+    return 2 * earthRadius * Math.asin(Math.sqrt(h));
+  }
+
+  // Plain words for a distance: metres up close, kilometres further away.
+  function describeDistance(metres) {
+    if (metres < 1000) return Math.round(metres / 10) * 10 + " m";
+    return (metres / 1000).toFixed(1).replace(".", ",") + " km";
+  }
+
+  function showDistance(text, isResult) {
+    distanceBox.className = isResult ? "" : "empty";
+    distanceBox.textContent = text;
+  }
+
+  async function showDistanceToBuyer() {
+    const typed = buyerInput.value.trim();
+    if (!typed) {
+      showDistance("Type the buyer's area first, e.g. Alvalade, Lisboa.", false);
+      return;
+    }
+    if (!sellerPoint) {
+      showDistance("Press “Use this address” above first, so we know where the armchair is.", false);
+      return;
+    }
+
+    distanceButton.disabled = true;
+    showDistance("Measuring the distance…", false);
+
+    try {
+      const place = await findPlace(typed);
+      if (!place) {
+        showDistance("Couldn't find that area. Try adding the city, e.g. Alvalade, Lisboa.", false);
+        return;
+      }
+      const buyerPoint = { lat: place.lat, lon: place.lon };
+      const drive = await driveBetween(sellerPoint, buyerPoint);
+      if (drive) {
+        showDistance(
+          "About " + describeDistance(drive.metres) + " by road from " + place.neighbourhood
+          + " — about " + drive.minutes + " min by car.",
+          true
+        );
+        return;
+      }
+      const metres = metresBetween(sellerPoint, buyerPoint);
+      showDistance(
+        "About " + describeDistance(metres) + " from " + place.neighbourhood
+        + " — roughly " + Math.max(5, Math.round(metres / 4000) * 5) + " min by car.",
+        true
+      );
+    } catch (error) {
+      showDistance("The map service didn't answer in time. Try again in a moment.", false);
+    } finally {
+      distanceButton.disabled = false;
+    }
+  }
+
+  lookupButton.addEventListener("click", lookUpArea);
+  addressInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") lookUpArea();
+  });
+  distanceButton.addEventListener("click", showDistanceToBuyer);
+  buyerInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") showDistanceToBuyer();
+  });
+</script>
+</body>
+</html>

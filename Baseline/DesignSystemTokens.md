@@ -57,7 +57,10 @@ Values are shown as primitive → hex. Light mode is the POC; Dark mode was desi
 | **Tile** | `bg/tile` | gray/150 `#E9EDF2` / gray/800 | Photo placeholders, hero area |
 | **Disabled** | `bg/disabled` | gray/200 `#E6E9EC` / gray/800 | Disabled Secondary button |
 | **Ground** | `bg/ground-top` · `-mid` · `-end` | white · mist/200 · mist/50 / gray/950 · gray/900 · gray/950 | Phone background gradient stops (0% · 45% · 100%) |
-| **Ground glow** | `bg/ground-glow-1` · `-2` | mist/400 · mist/300 / gray/800 | Soft radial glows on the ground |
+| **Ground glow** | `bg/ground-glow-1` · `-2` | mist/400 · mist/300 / gray/850 | Soft radial glows on the ground |
+| **Ground glow fade** | `bg/ground-glow-1-fade` · `-2-fade` | the glow colour at 0% / gray/850 at 0% | Transparent end of each glow. Gradients only (hidden from pickers) |
+
+The ground tokens are combined in the **`background/ground`** paint style (section 2.3) and the **`Background`** component (section 3.2). Use those rather than rebuilding the gradient.
 
 ### 1.3 Actions, glass and borders
 
@@ -163,6 +166,7 @@ Spacing follows a 4px rhythm with 2px and 6px steps for tight details. Scope: ga
 
 | Style | Figma Style | Value | Usage |
 | --- | --- | --- | --- |
+| **Ground** | `background/ground` (paint style) | Vertical gradient `bg/ground-top` → `-mid` (45%) → `-end`, plus four soft radial glows (`bg/ground-glow-1/-2` fading to their `-fade` tokens) | The app background (POC `--ground`) behind every screen and the cover. Every stop is a token, so it follows Light/Dark |
 | **Chip shadow** | `shadow/chip` | 0 1 2 + 0 4 10, `shadow/soft` | Chips, Secondary button, attach button |
 | **Bubble shadow** | `shadow/bubble` | 0 1 2 + 0 6 16, `shadow/soft` | Reply bubbles, thumbnails |
 | **Card shadow** | `shadow/card` | 0 12 32, `shadow/soft` | Cards, listing card, bottom sheet |
@@ -210,6 +214,7 @@ Change content through **properties**, never by detaching. Instance-swap icons f
 
 | Component | Variants | Properties | Usage |
 | --- | --- | --- | --- |
+| **`Background`** | `Type=Phone (390×844, radius/3xl, shadow/phone) / Screen (1440×900)` | none | The bottom layer of a screen or device mockup; fill = `background/ground`. On the `↳ Colors` page |
 | **`Assistant message`** | `State=Latest / Earlier` | Text, Show sub, Sub | The assistant's turn, no bubble. Only the newest is Latest |
 | **`Your reply`** | `Type=Text / Photos` | Text, Show change | The person's turn, right-aligned. Show change only on the latest reply |
 | **`Thumbnail`** | `Type=Photo / Empty`, `Size=Large (56) / Small (48)` | none | Added photos; replace the fill with the image |

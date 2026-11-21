@@ -48,6 +48,28 @@ List every screen. Indent a screen under the one it opens from. Give each a shor
 - **Back Goes To**: [Screen ID]
 - **Risky Actions Needing Confirmation**: [Action, or "None"]
 
+### Screen: Suggested price (PRICE)
+
+Chat step between the reviewed listing draft and collection days. The price comes from the rule in `my-labs/01-lab-exercise-1-ideate-on-a-rule/letting-go-of-furniture/letting_go_price.py`: item and condition (from the AI draft) plus age (asked here) give a price and a one-line reason.
+
+- **User's Goal**: Know what to ask for the item, and why
+- **Main Action (one button)**: Use €<price>
+- **Secondary Actions**: Set my own price; Change (edit the age answer); pick an age chip or type the years; Change item or condition (goes back to those answers); Too high / Too low (feedback on the suggestion); It's a different item (fallback); Try again (error)
+- **Must-Have Content**: Suggested price, the one-line reason, AI tag, the inputs used (item, condition, age) with their source tags
+- **Comes From**: Review listing (after Confirm)
+- **Goes Next To**: Collection days (via Use €<price>, or after sending your own price)
+- **Back Goes To**: Review listing
+- **Risky Actions Needing Confirmation**: None (nothing is published here)
+
+| State | Figma frame | What the User Sees |
+| --- | --- | --- |
+| Empty / First use | `PRICE/ask-age` | "How old is the sofa?" with age chips, a "Set my own price" chip, and the composer to type the years |
+| Loading | `PRICE/thinking` | The age answer, typing indicator, composer disabled |
+| Normal | `PRICE/default` | Price card (€185, reason, AI tag, item/condition/age rows, "Change item or condition"), "An estimate from a simple price guide.", Too high / Too low chips, Use €185 and Set my own price |
+| Normal (floor) | `PRICE/floor` | Price at the €5 floor; the reason ends "but never below €5" (said once, no notice) |
+| Error (fallback) | `PRICE/fallback` | Item type the rule doesn't know: shown right after the draft, with no age question. The assistant names the four covered items and says to type a price; Error notice, "It's a different item" chip, empty composer "Type your price, e.g. €25" |
+| Error (failure) | `PRICE/error` | Working out the price failed: Error notice, "Try again" and "Set my own price" chips, composer to type a price |
+
 ---
 
 ## 3. Layout of Key Screens
