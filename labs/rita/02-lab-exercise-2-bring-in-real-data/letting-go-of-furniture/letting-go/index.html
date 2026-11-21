@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Letting go · your listing</title>
+<style>
+  :root { --ink: #24211d; --muted: #706a62; --line: #e8e3dc; --brand: #b4552d; --soft: #faf7f3; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.5 system-ui, -apple-system, sans-serif; color: var(--ink); background: var(--soft); }
+  main { max-width: 420px; margin: 0 auto; padding: 24px 16px; }
+  .brand { font-weight: 700; color: var(--brand); letter-spacing: -0.3px; }
+  h1 { font-size: 22px; margin: 6px 0 16px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+  .photo { height: 160px; border-radius: 10px; background: linear-gradient(135deg, #e9dccb, #d8c3a5); display: grid; place-items: center; color: #7a6650; font-size: 14px; margin-bottom: 12px; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .price { font-size: 28px; font-weight: 700; color: var(--brand); }
+  .muted { color: var(--muted); font-size: 14px; }
+  .empty { border: 1.5px dashed #d9cfc3; background: #fdfbf8; color: var(--muted); text-align: center; padding: 18px 14px; border-radius: 12px; font-size: 14px; }
+  label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  input { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; }
+  button { width: 100%; border: 0; border-radius: 12px; padding: 14px; font: inherit; font-weight: 600; color: #fff; background: var(--brand); margin-top: 10px; }
+  .area { font-size: 20px; font-weight: 700; }
+  .facts { margin: 10px 0 0; padding: 0; list-style: none; font-size: 14px; }
+  .facts li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); }
+  .facts span:first-child { color: var(--muted); }
+  .credit { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .weather { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+  .weather .temp { font-size: 30px; font-weight: 700; color: var(--brand); }
+  /* The map: a soft circle of the area, no pin on the house. */
+  .map { height: 180px; border-radius: 10px; margin-top: 12px; background: #eee9e2; }
+  .map .leaflet-container { border-radius: 10px; font: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">Letting go</div>
+  <h1>Your listing</h1>
+
+  <section class="card">
+    <div class="photo">Photo of the armchair</div>
+    <div class="row"><strong>Armchair, good condition</strong><span class="price">€35</span></div>
+    <div class="muted">€80 new, 3 years old.</div>
+  </section>
+
+  <section class="card">
+    <label for="address">Where can buyers pick it up?</label>
+    <input id="address" placeholder="e.g. Rua de Arroios, Lisboa">
+    <button type="button" id="lookup">Use this address</button>
+  </section>
+
+  <section class="card">
+    <strong>What buyers will see</strong>
+    <div id="result">
+      <div class="empty">Type an address above and press “Use this address”. Buyers will see the neighbourhood, never the street.</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <strong>Pickup day weather</strong>
+    <div id="weather">
+      <div class="empty">The weather for the pickup day will appear here once you've added an address.</div>
+    </div>
+  </section>
+</main>
+
+<script>
+// Free data, no key needed:
+//  - Photon (OpenStreetMap) turns an address into an area: neighbourhood, city, postcode.
+//  - OpenStreetMap map tiles show that area as a soft circle.
+//  - Open-Meteo gives the weather for that area, so a buyer knows what to expect on pickup day.
+// We only ever show the area — never the street or house number.
+const LOOKUP_URL = "https://photon.komoot.io/api/";
+const WEATHER_URL = "https://api.open-meteo.com/v1/forecast";
+const TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+const addressBox = document.getElementById("address");
+const resultBox = document.getElementById("result");
+const weatherBox = document.getElementById("weather");
+
+let map = null;      // the map, once it has been drawn
+let circle = null;   // the soft circle around the area
+
+function showMessage(box, text) {
+  box.innerHTML = '<div class="empty"></div>';
+  box.firstChild.textContent = text;
+}
+
+// Plain words for the weather code Open-Meteo sends.
+function weatherWords(code) {
+  if (code === 0) return "Clear sky";
+  if (code <= 2) return "Mostly sunny";
+  if (code === 3) return "Cloudy";
+  if (code <= 48) return "Foggy";
+  if (code <= 57) return "Drizzle";
+  if (code <= 67) return "Rain";
+  if (code <= 77) return "Snow";
+  if (code <= 82) return "Rain showers";
+  if (code <= 86) return "Snow showers";
+  return "Thunderstorms";
+}
+
+// Fetch with a polite 8-second limit.
+async function fetchWithTimeout(url) {
+  const stop = new AbortController();
+  const timer = setTimeout(() => stop.abort(), 8000);
+  try {
+    const response = await fetch(url, { signal: stop.signal });
+    return await response.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Draw the area on a map, with a circle instead of a pin.
+function showMap(lat, lon) {
+  const holder = document.createElement("div");
+  holder.className = "map";
+  holder.id = "map";
+  resultBox.appendChild(holder);
+
+  if (typeof L === "undefined") {
+    holder.textContent = "The map couldn't load, but the area above is correct.";
+    return;
+  }
+
+  if (!map) {
+    map = L.map(holder, { scrollWheelZoom: false }).setView([lat, lon], 14);
+    L.tileLayer(TILE_URL, {
+      maxZoom: 18,
+      attribution: "© OpenStreetMap contributors",
+    }).addTo(map);
+  } else {
+    map.setView([lat, lon], 14);
+  }
+
+  if (circle) circle.remove();
+  circle = L.circle([lat, lon], {
+    radius: 700,
+    color: "#b4552d",
+    weight: 2,
+    fillColor: "#b4552d",
+    fillOpacity: 0.12,
+  }).addTo(map);
+}
+
+async function showWeather(lat, lon, area) {
+  showMessage(weatherBox, "Checking the weather…");
+  const url = WEATHER_URL
+    + "?latitude=" + lat + "&longitude=" + lon
+    + "&current=temperature_2m,weather_code,wind_speed_10m"
+    + "&timezone=auto";
+
+  try {
+    const data = await fetchWithTimeout(url);
+    const now = data && data.current;
+    if (!now) {
+      showMessage(weatherBox, "We couldn't get the weather right now. You can still list the item.");
+      return;
+    }
+
+    weatherBox.innerHTML = "";
+
+    const line = document.createElement("div");
+    line.className = "weather";
+    const temp = document.createElement("span");
+    temp.className = "temp";
+    temp.textContent = Math.round(now.temperature_2m) + "°";
+    const words = document.createElement("span");
+    words.textContent = weatherWords(now.weather_code);
+    line.append(temp, words);
+    weatherBox.appendChild(line);
+
+    const facts = document.createElement("ul");
+    facts.className = "facts";
+    const rows = [
+      ["Where", area || "the pickup area"],
+      ["Wind", Math.round(now.wind_speed_10m) + " km/h"],
+      ["Good for carrying furniture?", now.weather_code <= 3 ? "Yes, dry and calm" : "Maybe bring a cover"],
+    ];
+    for (const [label, value] of rows) {
+      const li = document.createElement("li");
+      const a = document.createElement("span");
+      a.textContent = label;
+      const b = document.createElement("span");
+      b.textContent = value;
+      li.append(a, b);
+      facts.appendChild(li);
+    }
+    weatherBox.appendChild(facts);
+
+    const credit = document.createElement("div");
+    credit.className = "credit";
+    credit.textContent = "Weather from Open-Meteo · area only, no exact address";
+    weatherBox.appendChild(credit);
+  } catch (error) {
+    showMessage(weatherBox, "The weather service didn't answer. Check your connection and try again.");
+  }
+}
+
+async function lookUpAddress() {
+  const typed = addressBox.value.trim();
+  if (!typed) {
+    showMessage(resultBox, "Type an address first, e.g. Rua de Arroios, Lisboa.");
+    return;
+  }
+
+  showMessage(resultBox, "Looking up the area…");
+
+  const url = LOOKUP_URL + "?q=" + encodeURIComponent(typed) + "&limit=1&lang=en";
+
+  try {
+    const data = await fetchWithTimeout(url);
+    const features = data && Array.isArray(data.features) ? data.features : [];
+    const place = features[0];
+    if (!place) {
+      showMessage(resultBox, "We couldn't find that place. Try adding the city, e.g. Rua de Arroios, Lisboa.");
+      return;
+    }
+
+    // Photon sends the whole address; we only keep the area parts.
+    const p = place.properties || {};
+    const area = p.district || p.locality || p.city || p.county || p.name || "Area found";
+    const city = p.city || p.county || p.state || "";
+    const postcode = p.postcode || "";
+    const coords = place.geometry && place.geometry.coordinates;
+    const lon = coords ? Number(coords[0]) : NaN;
+    const lat = coords ? Number(coords[1]) : NaN;
+
+    resultBox.innerHTML = "";
+    const title = document.createElement("div");
+    title.className = "area";
+    title.textContent = area;
+    resultBox.appendChild(title);
+
+    const facts = document.createElement("ul");
+    facts.className = "facts";
+    const rows = [
+      ["City", city || "—"],
+      ["Postcode area", postcode || "—"],
+      ["Pickup point", "shown as an area, not a pin"],
+    ];
+    for (const [label, value] of rows) {
+      const li = document.createElement("li");
+      const x = document.createElement("span");
+      x.textContent = label;
+      const y = document.createElement("span");
+      y.textContent = value;
+      li.append(x, y);
+      facts.appendChild(li);
+    }
+    resultBox.appendChild(facts);
+
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      showMap(lat, lon);
+      showWeather(lat, lon, area);
+    } else {
+      showMessage(weatherBox, "We couldn't find the area, so there's no weather to show yet.");
+    }
+
+    const credit = document.createElement("div");
+    credit.className = "credit";
+    credit.textContent = "Area from Photon · map © OpenStreetMap contributors";
+    resultBox.appendChild(credit);
+  } catch (error) {
+    showMessage(resultBox, "The place service didn't answer. Check your connection and try again.");
+  }
+}
+
+document.getElementById("lookup").addEventListener("click", lookUpAddress);
+</script>
+
+<!-- The map drawing tool, loaded from a free public library. -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</body>
+</html>
