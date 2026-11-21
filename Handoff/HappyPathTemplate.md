@@ -12,17 +12,17 @@ A chat-based assistant that helps a private seller (e.g. Marta, in Gràcia, Barc
 | ---- | ------------------------- | ----------------------------------------------------------------------------------- | ------- |
 | 1    | [[1. Start conversation]] | Taps **Sell an item** (or types what they need)                                     | 2       |
 | 2    | [[2. Photos]]             | Taps the plus button, adds photos of the item and sends them                        | 3       |
-| 3    | [[3. Is this it?]]        | Confirms the AI's guess ("wooden armchair with beige cushions"): **Yes, that's it** | 4       |
+| 3    | [[3. Is this it?]]        | Confirms the AI's guess ("green two-seater sofa"): **Yes, that's it**              | 4       |
 | 4    | [[4. Any damage?]]        | Taps **Add a photo of the back** and sends it                                       | 5       |
-| 5    | [[5. Back of the chair]]  | Confirms the marks the AI found: **Yes, that's right**                              | 6       |
-| 6    | [[6. Price]]              | Picks the suggested price **€45** (range €35–55 from similar chairs nearby)         | 7       |
+| 5    | [[5. Back of the sofa]]   | Confirms the marks the AI found: **Yes, that's right**                              | 6       |
+| 6    | [[6. Price]]              | Picks the suggested price **€45** (range €35–55 from similar sofas nearby)          | 7       |
 | 7    | [[7. Lowest offer]]       | Picks the lowest price the AI may accept: **€36**                                   | 8       |
 | 8    | [[8. Your listing]]       | Reviews the listing card (fields marked Checked / AI) and taps **All good**         | 9       |
 | 9    | [[9. Sell by]]            | Picks **Within a month**                                                            | 10      |
 | 10   | [[10. Collection days]]   | Selects **Sat 21** and **Sun 22**, taps **Next**                                    | 11      |
 | 11   | [[11. Collection times]]  | Picks at least one slot per day (Sat 12–15; Sun 12–15, 15–18), taps **See preview** | 12      |
 | 12   | [[12. Preview]]           | Checks what buyers will see and taps **Upload item**                                | 13      |
-| 13   | [[13. Item live]]         | Sees "Your armchair is live", taps **View post** or **Back to home**                | End     |
+| 13   | [[13. Item live]]         | Sees "Your sofa is live", taps **View post** or **Back to home**                    | End     |
 
 ## Data overview
 
@@ -54,7 +54,6 @@ Nothing about the back end is specified in Figma; this is what the screens need.
 - Alternative branches are not designed: **Donate an item**, **Not quite** (wrong guess), **Visible damage** / **There's more damage**, **It's in better shape**, **Give it away for free**, **No offers, fixed price**, **Change something**, **Weekends only**, **Evenings only**, **Any time on those days** and **Skip** on collection.
 - Loading, error and empty states (slow AI, failed upload, no price data, failed publish) are not designed.
 - Back-end services and APIs for image analysis, price suggestions, listing storage, publishing and offer handling are not defined.
-- Mismatch to check: the photos show a green sofa, but the text says "wooden armchair with beige cushions" and "Your armchair is live".
 - Colour stays marked **AI** on the listing card: should the user confirm it before publishing?
 - Collection days are hard-coded (Sat 21–Sat 28) in the design: confirm they come from the real calendar (next 2 weeks from today).
 - The **View post** destination (listing page) is not in this flow.
