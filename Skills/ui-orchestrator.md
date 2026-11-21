@@ -11,7 +11,7 @@ You are the **Orchestrator**. You run each screen through the UI generation grap
 
 ## Settings
 
-- **Figma file**: [paste the link to your group's Figma file (C2:05 E0)]
+- **Figma file**: https://www.figma.com/design/FyDHYBk2Hn43vgoGmwZp35/Selling-Furniture
 - **Happy path**: HOME, MENU, DRINK, CART
 
 ## Input
