@@ -8,6 +8,7 @@ This vault is a group's workspace for generating UI. Every part of the system is
 - **"Follow SETUP.md"**: follow [[SETUP]].
 - **Handoff (C3:01)**: follow [[Handoff/Handoff prompt]]: `/grill-me` to gather what's missing, then `/design-handoff` (Anthropic's `design` plugin) to write `Handoff/<ID>.md` from [[Handoff/_Spec template]]. [[Handoff/handoff-glossary]] is the way in: the flow map and shared terms. [[Handoff/Example/CART]] is a finished spec.
 - **Building another group's flow (C3:01 E2)**: follow [[Handoff/Builder brief]].
+- **Class build labs** (anything in `labs/`): follow [[labs/CLAUDE]]; the conventions are in [[labs/README]].
 
 ## Figma
 
