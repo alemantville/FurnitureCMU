@@ -5,6 +5,8 @@ reports: [[Notes/Reports/SELL - ds]] · [[Notes/Reports/SELL - ia]] · [[Notes/R
 
 # SELL · Flow 1 - Selling an Item · summary
 
+> **Update (run 2, after fixes):** the high items were fixed in the Figma copy (see [[Notes/Reports/SELL - fixes]]). The re-audit was cut short by the Figma MCP Starter-plan tool-call limit: ds and uxai could not read the file; ia confirmed states now exist for steps 02, 03, 06, 07, 10, 11, 12 and found remaining H-07 gaps (04 upload/error, 05 upload error, 08 error/fallback, 01 missing profile, offline beyond 03). Correction: uxai-6 is rule G-04, which is **medium**, not high. Re-run the audits when the limit resets.
+
 Section `1:406`, 13 frames (01 Start conversation → 13 Item live). Audited as the furniture happy path ([[Handoff/HappyPathTemplate]]); the Baseline specs are not filled yet, so the library components already used in the file are the styling vocabulary.
 
 ## Violations
