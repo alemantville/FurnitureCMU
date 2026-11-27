@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "app", "run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "stoop-app-fnm",
+      "runtimeExecutable": "fnm",
+      "runtimeArgs": ["exec", "--using=26", "npm.cmd", "--prefix", "app", "run", "dev"],
+      "port": 3000
     }
   ]
 }
