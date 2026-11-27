@@ -1,4 +1,5 @@
 {
+  "alwaysUpdateLinks": true,
   "userIgnoreFilters": [
     "app/node_modules/",
     "app/.next/"

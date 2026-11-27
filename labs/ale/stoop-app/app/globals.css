@@ -1,0 +1,515 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ==========================================================================
+   Stoop Design System tokens
+   Source of truth: Figma "Stoop Design System" (1UcV9Q72u1nnwHBD1vYlEZ),
+   documented in Baseline/DesignSystemTokens.md.
+
+   Raw tokens keep their Figma names with "/" → "-" (text/primary → --text-primary),
+   so they match Figma Dev Mode output. Use them through the Tailwind names below.
+
+   Figma                     Tailwind
+   text/*                    text-fg-primary · -secondary · -tertiary · -note · -link · -on-ink · -on-photo · -disabled
+   bg/*                      bg-page · surface · bubble · chip · chip-hover · chip-soft · plus · tile · disabled
+   action/*                  bg-action · action-hover · action-disabled
+   glass/*                   bg-glass · glass-dark, border-glass-edge   (or the `glass` utility)
+   border/*                  border-edge-subtle · edge · edge-outline · edge-focus
+   tag/*, feedback/*         bg-tag-ai / text-tag-ai-fg, tag-checked, tag-info, warning, error
+   Text styles               type-h1 … type-h6, type-body-xl/-lg/-md/-sm, type-label, type-caption,
+                             type-overline, type-tag, type-button-lg, type-button-sm
+   spacing/*                 Tailwind's 4px scale: 3xs=0.5 2xs=1 xs=1.5 sm=2 md=3 lg=4 xl=5
+                             2xl=6 3xl=8 4xl=10 5xl=12 6xl=16  (e.g. spacing/lg → p-4)
+   layout/*                  p-page · gap-gutter · p-card · gap-section
+   radius/*                  rounded-xs 4 · sm 8 · md 12 · lg 16 · xl 20 · 2xl 24 · 3xl 40 · full
+   Effect styles             shadow-chip · bubble · card · button · phone, `glass`, `focus-ring`
+   background/ground         bg-ground
+   ========================================================================== */
+
+:root {
+  /* Color · Light ------------------------------------------------------- */
+  --text-primary: #1c1f26;
+  --text-secondary: #5d6577;
+  --text-tertiary: #6e7585;
+  --text-note: #3b4252;
+  --text-link: #5d6577;
+  --text-on-ink: #ffffff;
+  --text-on-photo: #ffffff;
+  --text-disabled: #9aa0ad;
+
+  --bg-page: #e6e9ec;
+  --bg-surface: #ffffff;
+  --bg-bubble: #fcfcfb;
+  --bg-chip: #ffffff;
+  --bg-chip-hover: #f4f6f9;
+  --bg-chip-soft: #f1f0f2;
+  --bg-plus: #f1f4f8;
+  --bg-tile: #e9edf2;
+  --bg-disabled: #e6e9ec;
+  --bg-ground-top: #ffffff;
+  --bg-ground-mid: #eef3f6;
+  --bg-ground-end: #f3f2f4;
+  --bg-ground-glow-1: #dde4e8;
+  --bg-ground-glow-2: #e4e1e8;
+  --bg-ground-glow-1-fade: rgb(221 228 232 / 0);
+  --bg-ground-glow-2-fade: rgb(228 225 232 / 0);
+
+  --action-primary: #1c1f26;
+  --action-primary-hover: #2a2f3a;
+  --action-primary-disabled: #e6e9ec;
+
+  --glass-fill: rgb(255 255 255 / 0.5);
+  --glass-edge: rgb(255 255 255 / 0.75);
+  --glass-dark: rgb(28 31 38 / 0.6);
+
+  --border-subtle: rgb(0 0 0 / 0.07);
+  --border-default: rgb(0 0 0 / 0.1);
+  --border-outline: #cfd2da;
+  --border-focus: #1c1f26;
+
+  --tag-ai-bg: #e2d3f6;
+  --tag-ai-text: #461b7e;
+  --tag-checked-bg: #cef3cd;
+  --tag-checked-text: #2e4a40;
+  --tag-info-bg: #d8e8fa;
+  --tag-info-text: #145399;
+  --feedback-warning-bg: #fbebc6;
+  --feedback-warning-text: #7a4e00;
+  --feedback-error-bg: #fbdcda;
+  --feedback-error-text: #8e1f18;
+
+  --shadow-soft: rgb(0 0 0 / 0.05);
+  --shadow-strong: rgb(0 0 0 / 0.2);
+
+  /* shadcn semantic vars, mapped onto Stoop ------------------------------ */
+  --radius: 16px;
+  --background: var(--bg-page);
+  --foreground: var(--text-primary);
+  --card: var(--bg-surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-surface);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--action-primary);
+  --primary-foreground: var(--text-on-ink);
+  --secondary: var(--bg-chip);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--bg-plus);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--bg-chip-hover);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--feedback-error-text);
+  --border: var(--border-default);
+  --input: var(--border-default);
+  --ring: var(--border-focus);
+  --chart-1: var(--tag-ai-text);
+  --chart-2: var(--tag-info-text);
+  --chart-3: var(--tag-checked-text);
+  --chart-4: var(--feedback-warning-text);
+  --chart-5: var(--feedback-error-text);
+  --sidebar: var(--bg-surface);
+  --sidebar-foreground: var(--text-primary);
+  --sidebar-primary: var(--action-primary);
+  --sidebar-primary-foreground: var(--text-on-ink);
+  --sidebar-accent: var(--bg-chip-hover);
+  --sidebar-accent-foreground: var(--text-primary);
+  --sidebar-border: var(--border-subtle);
+  --sidebar-ring: var(--border-focus);
+}
+
+/* Responsive · Mobile. A frame can pin this mode with data-responsive="mobile"
+   (Figma: a phone frame sets Responsive = Mobile; the phone Background does). */
+:root,
+[data-responsive="mobile"] {
+  --type-h1-size: 28px;
+  --type-h1-line-height: 36px;
+  --type-h2-size: 24px;
+  --type-h2-line-height: 32px;
+  --type-h3-size: 22px;
+  --type-h3-line-height: 28px;
+  --type-h4-size: 20px;
+  --type-h4-line-height: 28px;
+  --type-h5-size: 18px;
+  --type-h5-line-height: 24px;
+  --type-h6-size: 16px;
+  --type-h6-line-height: 24px;
+  --type-body-xl-size: 18px;
+  --type-body-xl-line-height: 24px;
+  --type-body-lg-size: 16px;
+  --type-body-lg-line-height: 24px;
+  --type-body-md-size: 15px;
+  --type-body-md-line-height: 22px;
+  --type-body-sm-size: 13px;
+  --type-body-sm-line-height: 18px;
+  --type-label-size: 13px;
+  --type-label-line-height: 18px;
+  --type-caption-size: 12px;
+  --type-caption-line-height: 16px;
+  --type-overline-size: 11px;
+  --type-overline-line-height: 14px;
+  --type-tag-size: 11px;
+  --type-tag-line-height: 14px;
+  --type-button-size: 16px;
+  --type-button-line-height: 20px;
+  --type-button-sm-size: 15px;
+  --type-button-sm-line-height: 20px;
+
+  --layout-page-margin: 16px;
+  --layout-gutter: 12px;
+  --layout-card-padding: 16px;
+  --layout-section-gap: 24px;
+}
+
+/* Responsive · Desktop (Figma's Desktop mode, from the md breakpoint) */
+@media (width >= 48rem) {
+  :root {
+    --type-h1-size: 40px;
+    --type-h1-line-height: 48px;
+    --type-h2-size: 32px;
+    --type-h2-line-height: 40px;
+    --type-h3-size: 28px;
+    --type-h3-line-height: 36px;
+    --type-h4-size: 24px;
+    --type-h4-line-height: 32px;
+    --type-h5-size: 20px;
+    --type-h5-line-height: 28px;
+    --type-h6-size: 18px;
+    --type-h6-line-height: 26px;
+    --type-body-xl-size: 20px;
+    --type-body-xl-line-height: 28px;
+    --type-body-lg-size: 18px;
+    --type-body-lg-line-height: 28px;
+    --type-body-md-size: 16px;
+    --type-body-md-line-height: 24px;
+    --type-body-sm-size: 14px;
+    --type-body-sm-line-height: 20px;
+    --type-label-size: 14px;
+    --type-label-line-height: 20px;
+    --type-overline-size: 12px;
+    --type-overline-line-height: 16px;
+    --type-button-line-height: 24px;
+
+    --layout-page-margin: 32px;
+    --layout-gutter: 24px;
+    --layout-card-padding: 24px;
+    --layout-section-gap: 40px;
+  }
+}
+
+/* Color · Dark */
+.dark {
+  --text-primary: #fcfcfb;
+  --text-secondary: #cfd2da;
+  --text-tertiary: #9aa0ad;
+  --text-note: #cfd2da;
+  --text-link: #cfd2da;
+  --text-on-ink: #1c1f26;
+  --text-on-photo: #ffffff;
+  --text-disabled: #5d6577;
+
+  --bg-page: #121419;
+  --bg-surface: #22262f;
+  --bg-bubble: #2a2f3a;
+  --bg-chip: #22262f;
+  --bg-chip-hover: #2a2f3a;
+  --bg-chip-soft: #2a2f3a;
+  --bg-plus: #2a2f3a;
+  --bg-tile: #2a2f3a;
+  --bg-disabled: #2a2f3a;
+  --bg-ground-top: #121419;
+  --bg-ground-mid: #1c1f26;
+  --bg-ground-end: #121419;
+  --bg-ground-glow-1: #22262f;
+  --bg-ground-glow-2: #22262f;
+  --bg-ground-glow-1-fade: rgb(34 38 47 / 0);
+  --bg-ground-glow-2-fade: rgb(34 38 47 / 0);
+
+  --action-primary: #fcfcfb;
+  --action-primary-hover: #e9edf2;
+  --action-primary-disabled: #2a2f3a;
+
+  --glass-fill: rgb(42 47 58 / 0.6);
+  --glass-edge: rgb(255 255 255 / 0.1);
+  --glass-dark: rgb(28 31 38 / 0.6);
+
+  --border-subtle: rgb(255 255 255 / 0.06);
+  --border-default: rgb(255 255 255 / 0.1);
+  --border-outline: #3b4252;
+  --border-focus: #fcfcfb;
+
+  --tag-ai-bg: #2a1250;
+  --tag-ai-text: #c2a3ec;
+  --tag-checked-bg: #18302a;
+  --tag-checked-text: #9adda0;
+  --tag-info-bg: #0d2a4d;
+  --tag-info-text: #9cc3f2;
+  --feedback-warning-bg: #3a2706;
+  --feedback-warning-text: #f2c76a;
+  --feedback-error-bg: #3e1310;
+  --feedback-error-text: #f2a19b;
+
+  --shadow-soft: rgb(0 0 0 / 0.4);
+  --shadow-strong: rgb(0 0 0 / 0.6);
+}
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: var(--font-sans);
+
+  /* Stoop colours */
+  --color-fg-primary: var(--text-primary);
+  --color-fg-secondary: var(--text-secondary);
+  --color-fg-tertiary: var(--text-tertiary);
+  --color-fg-note: var(--text-note);
+  --color-fg-link: var(--text-link);
+  --color-fg-on-ink: var(--text-on-ink);
+  --color-fg-on-photo: var(--text-on-photo);
+  --color-fg-disabled: var(--text-disabled);
+
+  --color-page: var(--bg-page);
+  --color-surface: var(--bg-surface);
+  --color-bubble: var(--bg-bubble);
+  --color-chip: var(--bg-chip);
+  --color-chip-hover: var(--bg-chip-hover);
+  --color-chip-soft: var(--bg-chip-soft);
+  --color-plus: var(--bg-plus);
+  --color-tile: var(--bg-tile);
+  --color-disabled: var(--bg-disabled);
+
+  --color-action: var(--action-primary);
+  --color-action-hover: var(--action-primary-hover);
+  --color-action-disabled: var(--action-primary-disabled);
+
+  --color-glass: var(--glass-fill);
+  --color-glass-edge: var(--glass-edge);
+  --color-glass-dark: var(--glass-dark);
+
+  --color-edge-subtle: var(--border-subtle);
+  --color-edge: var(--border-default);
+  --color-edge-outline: var(--border-outline);
+  --color-edge-focus: var(--border-focus);
+
+  --color-tag-ai: var(--tag-ai-bg);
+  --color-tag-ai-fg: var(--tag-ai-text);
+  --color-tag-checked: var(--tag-checked-bg);
+  --color-tag-checked-fg: var(--tag-checked-text);
+  --color-tag-info: var(--tag-info-bg);
+  --color-tag-info-fg: var(--tag-info-text);
+  --color-warning: var(--feedback-warning-bg);
+  --color-warning-fg: var(--feedback-warning-text);
+  --color-error: var(--feedback-error-bg);
+  --color-error-fg: var(--feedback-error-text);
+
+  /* shadcn colours */
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+
+  /* radius/* (fixed Stoop values; 4xl is what shadcn's pill controls use) */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 40px;
+  --radius-4xl: 40px;
+
+  /* layout/* */
+  --spacing-page: var(--layout-page-margin);
+  --spacing-gutter: var(--layout-gutter);
+  --spacing-card: var(--layout-card-padding);
+  --spacing-section: var(--layout-section-gap);
+
+  /* Effect styles */
+  --shadow-chip: 0 1px 2px 0 var(--shadow-soft), 0 4px 10px 0 var(--shadow-soft);
+  --shadow-bubble: 0 1px 2px 0 var(--shadow-soft), 0 6px 16px 0 var(--shadow-soft);
+  --shadow-card: 0 12px 32px 0 var(--shadow-soft);
+  --shadow-button: inset 0 1px 0 0 rgb(255 255 255 / 0.18), 0 8px 18px 0 var(--shadow-strong);
+  --shadow-phone: 0 24px 60px 0 var(--shadow-strong);
+}
+
+/* Typing indicator: one dot lit per 300ms step (Figma: Smart animate, 300ms, loop) */
+@theme {
+  --animate-typing: typing 900ms step-end infinite;
+
+  @keyframes typing {
+    0% {
+      opacity: 1;
+    }
+    33.333% {
+      opacity: 0.35;
+    }
+    100% {
+      opacity: 0.35;
+    }
+  }
+}
+
+/* Text styles (Figma text styles; sizes follow the Responsive collection) */
+@utility type-h1 {
+  font-size: var(--type-h1-size);
+  line-height: var(--type-h1-line-height);
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+@utility type-h2 {
+  font-size: var(--type-h2-size);
+  line-height: var(--type-h2-line-height);
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+@utility type-h3 {
+  font-size: var(--type-h3-size);
+  line-height: var(--type-h3-line-height);
+  font-weight: 600;
+  letter-spacing: -0.4px;
+}
+@utility type-h4 {
+  font-size: var(--type-h4-size);
+  line-height: var(--type-h4-line-height);
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+@utility type-h5 {
+  font-size: var(--type-h5-size);
+  line-height: var(--type-h5-line-height);
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+@utility type-h6 {
+  font-size: var(--type-h6-size);
+  line-height: var(--type-h6-line-height);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+@utility type-body-xl {
+  font-size: var(--type-body-xl-size);
+  line-height: var(--type-body-xl-line-height);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+@utility type-body-lg {
+  font-size: var(--type-body-lg-size);
+  line-height: var(--type-body-lg-line-height);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+@utility type-body-md {
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line-height);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+@utility type-body-sm {
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line-height);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+@utility type-label {
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line-height);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+@utility type-caption {
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line-height);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+@utility type-overline {
+  font-size: var(--type-overline-size);
+  line-height: var(--type-overline-line-height);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+@utility type-tag {
+  font-size: var(--type-tag-size);
+  line-height: var(--type-tag-line-height);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+@utility type-button-lg {
+  font-size: var(--type-button-size);
+  line-height: var(--type-button-line-height);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+@utility type-button-sm {
+  font-size: var(--type-button-sm-size);
+  line-height: var(--type-button-sm-line-height);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+/* blur/glass + glass/fill + glass/edge */
+@utility glass {
+  background-color: var(--glass-fill);
+  border: 1px solid var(--glass-edge);
+  backdrop-filter: blur(11px);
+  -webkit-backdrop-filter: blur(11px);
+}
+
+/* focus/ring: 2px bg/surface gap + 2px border/focus ring */
+@utility focus-ring {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--bg-surface),
+    0 0 0 4px var(--border-focus);
+}
+
+/* background/ground: linear ground + four soft glows (geometry from Figma) */
+@utility bg-ground {
+  background-color: var(--bg-ground-mid);
+  background-image:
+    radial-gradient(35% 16% at 90% 95%, color-mix(in srgb, var(--bg-ground-glow-1) 60%, transparent), var(--bg-ground-glow-1-fade)),
+    radial-gradient(40% 18% at 15% 85%, color-mix(in srgb, var(--bg-ground-glow-2) 60%, transparent), var(--bg-ground-glow-2-fade)),
+    radial-gradient(45% 20% at 90% 55%, color-mix(in srgb, var(--bg-ground-glow-2) 80%, transparent), var(--bg-ground-glow-2-fade)),
+    radial-gradient(45% 20% at 10% 33%, color-mix(in srgb, var(--bg-ground-glow-1) 80%, transparent), var(--bg-ground-glow-1-fade)),
+    linear-gradient(180deg, var(--bg-ground-top) 0%, var(--bg-ground-mid) 45%, var(--bg-ground-end) 100%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}

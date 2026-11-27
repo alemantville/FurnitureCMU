@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POC A · Chat thread</title>
+<style>
+  :root{
+    --page:#e8e8e8; --surface:#ffffff; --soft:#f5f5f5; --line:#e0e0e0; --line-strong:#c9c9c9;
+    --ink:#1e1e1e; --muted:#6b6b6b; --faint:#9a9a9a;
+    --accent:#1f7a6b; --accent-soft:#e7f2ef; --accent-ink:#ffffff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  button{font:inherit;cursor:pointer}
+  button:disabled{cursor:default}
+  .page{max-width:980px;margin:0 auto;padding:32px 16px;display:flex;gap:40px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
+
+  /* Side notes */
+  .notes{flex:1 1 300px;max-width:400px}
+  .eyebrow{margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .notes h1{margin:4px 0 12px;font-size:26px;line-height:1.2}
+  .notes p{color:#444;margin:0 0 14px}
+  .notes h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:22px 0 8px}
+  .notes ul{margin:0;padding-left:18px;color:#444}
+  .notes li{margin-bottom:6px}
+  .sim{display:flex;gap:8px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:18px;font-size:14px}
+  .sim input{margin-top:3px;accent-color:var(--accent)}
+  .linkbtn{background:none;border:0;padding:0;color:var(--accent);text-decoration:underline;margin-top:12px}
+
+  /* Phone */
+  .phone{width:375px;max-width:100%;height:760px;background:var(--surface);border:1px solid var(--line-strong);border-radius:32px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+  #app{flex:1;display:flex;flex-direction:column;min-height:0}
+  .view{flex:1;display:flex;flex-direction:column;min-height:0}
+
+  .btn{border-radius:12px;padding:12px 16px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);font-weight:600}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .btn.primary:disabled{background:#cfcfcf;border-color:#cfcfcf;color:#fff}
+  .btn.block{width:100%}
+  .btn.small{padding:7px 12px;font-size:14px;border-radius:10px}
+
+  /* Home */
+  .home{padding:28px 22px;display:flex;flex-direction:column;gap:14px;flex:1}
+  .home h2{font-size:24px;margin:24px 0 4px}
+  .home p{margin:0 0 18px;color:var(--muted)}
+  .entry{display:flex;align-items:center;gap:14px;text-align:left;padding:18px;border-radius:16px;border:1px solid var(--line-strong);background:var(--surface)}
+  .entry .ico{width:44px;height:44px;border-radius:12px;background:var(--soft);display:grid;place-items:center;font-size:20px}
+  .entry.main{border-color:var(--accent);background:var(--accent-soft)}
+  .entry.main .ico{background:var(--accent);color:#fff}
+  .entry b{display:block;font-size:17px}
+  .entry span{color:var(--muted);font-size:14px}
+
+  /* Chat */
+  .hdr{padding:14px 16px 10px;border-bottom:1px solid var(--line);background:var(--surface)}
+  .hdr-top{display:flex;align-items:center;justify-content:space-between}
+  .hdr b{font-size:16px}
+  .hdr small{color:var(--muted);font-size:13px}
+  .private{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center;margin-top:2px}
+  .progress{height:4px;border-radius:2px;background:var(--line);margin-top:10px;overflow:hidden}
+  .progress i{display:block;height:100%;background:var(--accent);transition:width .5s ease}
+  .thread{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px;background:var(--soft)}
+  .msg{max-width:86%;padding:10px 13px;border-radius:16px;line-height:1.4}
+  .msg.bot{background:var(--surface);border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:4px}
+  .msg.bot .who{display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
+  .msg.bot .sub{display:block;color:var(--muted);font-size:14px;margin-top:4px}
+  .msg.me{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+  .typing{display:flex;gap:4px;padding:14px}
+  .typing i{width:6px;height:6px;border-radius:50%;background:var(--faint);animation:blink 1s infinite}
+  .typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+  @keyframes blink{0%,100%{opacity:.3}50%{opacity:1}}
+  .thumbs{display:grid;grid-template-columns:repeat(3,64px);gap:6px}
+  .thumb{width:64px;height:64px;border-radius:10px;background:repeating-linear-gradient(135deg,#d6d6d6 0 8px,#cdcdcd 8px 16px);display:grid;place-items:end start;font-size:11px;color:#555;padding:4px}
+  .msg.me .thumb{background:repeating-linear-gradient(135deg,#ffffff55 0 8px,#ffffff33 8px 16px);color:#fff}
+  .widget{align-self:stretch;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px}
+  .widget.locked{opacity:.55;pointer-events:none}
+  .widget h3{margin:0 0 2px;font-size:15px}
+  .widget .whint{margin:0 0 12px;color:var(--muted);font-size:13px}
+
+  /* Review card */
+  .row{padding:10px 0;border-top:1px solid var(--line)}
+  .row:first-of-type{border-top:0}
+  .row-head{display:flex;align-items:center;gap:8px}
+  .lab{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .tag{font-size:11px;padding:1px 7px;border-radius:20px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .tag.you{background:var(--soft);color:var(--muted)}
+  .edit{margin-left:auto;background:none;border:0;color:var(--accent);font-size:14px;padding:2px 0}
+  .val{margin-top:3px}
+  .note{font-size:13px;color:var(--muted);margin-top:4px}
+  .row.low{background:var(--soft);border:1px dashed var(--line-strong);border-radius:12px;padding:10px;margin:6px 0}
+  .check{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
+  .row input,.row textarea{width:100%;font:inherit;padding:8px 10px;border:1px solid var(--accent);border-radius:10px;margin-top:6px;outline:none}
+  .row textarea{min-height:72px;resize:vertical}
+  .editbar{display:flex;gap:8px;margin-top:8px}
+  .card-foot{margin-top:12px;display:flex;flex-direction:column;gap:6px;align-items:stretch}
+  .card-foot p{margin:0;text-align:center;font-size:13px;color:var(--muted)}
+
+  /* Chips */
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{border:1px solid var(--line-strong);background:var(--surface);border-radius:20px;padding:8px 13px;font-size:14px}
+  .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .dayblock{margin-bottom:12px}
+  .dayblock b{display:block;font-size:14px;margin-bottom:6px}
+  .wfoot{margin-top:12px}
+
+  /* Composer */
+  .tray{display:flex;gap:6px;padding:8px 12px 0;background:var(--surface)}
+  .tray:empty{display:none}
+  .tray .thumb{width:48px;height:48px}
+  .composer{display:flex;gap:8px;padding:10px 12px 14px;background:var(--surface);border-top:1px solid var(--line);align-items:center}
+  .composer input{flex:1;font:inherit;padding:10px 12px;border-radius:20px;border:1px solid var(--line-strong);outline:none;min-width:0}
+  .composer input:disabled{background:var(--soft)}
+  .attach{width:40px;height:40px;border-radius:50%;border:1px solid var(--line-strong);background:var(--surface);font-size:20px;flex:none}
+  .attach:disabled{opacity:.35}
+  .send{border-radius:20px;border:0;background:var(--accent);color:#fff;padding:10px 14px;font-weight:600;flex:none}
+  .send:disabled{background:#cfcfcf}
+
+  /* Preview / live */
+  .topbar{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .topbar b{font-size:16px}
+  .scroll{flex:1;overflow-y:auto}
+  .hero{height:220px;background:repeating-linear-gradient(135deg,#dcdcdc 0 12px,#d2d2d2 12px 24px);position:relative}
+  .hero .count{position:absolute;right:12px;bottom:12px;background:#0008;color:#fff;font-size:12px;border-radius:10px;padding:2px 8px}
+  .pv{padding:16px}
+  .pv h2{margin:0;font-size:20px}
+  .price{font-size:22px;font-weight:700;margin:4px 0 10px}
+  .meta{display:grid;grid-template-columns:110px 1fr;gap:6px 10px;font-size:14px;margin:12px 0}
+  .meta dt{color:var(--muted)}.meta dd{margin:0}
+  .box{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px}
+  .box h4{margin:0 0 6px;font-size:14px}
+  .lock{display:flex;gap:8px;align-items:center;background:var(--soft);border-radius:10px;padding:10px 12px;font-size:13px;color:#444;margin:0 16px 12px}
+  .actions{padding:12px 16px 18px;display:flex;gap:10px;border-top:1px solid var(--line)}
+  .actions .btn{flex:1}
+  .live{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px}
+  .tick{width:72px;height:72px;border-radius:50%;background:var(--accent);color:#fff;font-size:34px;display:grid;place-items:center;margin-bottom:18px}
+  .live h2{margin:0 0 8px}
+  .live p{color:var(--muted);margin:0 0 6px}
+  .live .stack{display:flex;flex-direction:column;gap:10px;width:100%;margin-top:22px}
+  .badge{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--accent-soft);color:var(--accent)}
+</style>
+</head>
+<body>
+<main class="page">
+  <aside class="notes">
+    <p class="eyebrow">POC A</p>
+    <h1>Chat thread</h1>
+    <p>The whole sale happens in one chat. The assistant asks for one thing at a time and you answer with photos, chips or your own words. The AI draft arrives as a card in the thread: tap a line to edit it, or just type a change like <em>“price 40”</em>.</p>
+    <h2>What this POC tests</h2>
+    <ul>
+      <li>Is a chat calm enough for a whole listing, or does the thread get long?</li>
+      <li>Do people correct the draft by typing, or do they tap the card?</li>
+      <li>Answered cards lock once you move on, so the order stays fixed.</li>
+    </ul>
+    <h2>Behaviour leaning</h2>
+    <ul>
+      <li>Conversational 3 / direct 2: chat and typed edits, with chips and inline fields.</li>
+      <li>Review mode 4 / 1: the AI drafts, you approve. One unsure field must be checked.</li>
+      <li>Staged 3 / live 2: each step commits with a button; edits update the card at once.</li>
+    </ul>
+    <label class="sim"><input type="checkbox" id="simFail"> <span><b>Simulate fallback</b><br>The AI can't read the first photos.</span></label>
+    <button class="linkbtn" id="restart">Restart the flow</button>
+  </aside>
+
+  <div class="phone"><div id="app"></div></div>
+</main>
+
+<script>
+const FIELDS = [
+  {k:'title', label:'Title', v:'Wooden armchair with beige cushions'},
+  {k:'desc', label:'Description', v:'Solid wood armchair with removable beige cushions. Sturdy frame, light wear on the armrests.', long:true},
+  {k:'cat', label:'Category', v:'Home › Furniture › Chairs'},
+  {k:'color', label:'Colour', v:'Brown, beige'},
+  {k:'cond', label:'Condition', v:'Good, light wear', low:true, note:"I couldn't see the back of the chair. Is there any damage I should mention?"},
+  {k:'price', label:'Price', v:'€45', note:'Similar chairs near you sold for €35–55.'},
+  {k:'loc', label:'Location', v:'Gràcia, Barcelona', note:'From your profile. Only the area is shown to buyers.'}
+];
+const DAYS = ['Mon 9','Tue 10','Wed 11','Thu 12','Fri 13','Sat 14','Sun 15'];
+const SLOTS = ['9–12','12–15','15–18','18–21'];
+const STEPS = {photos:[1,'Photos'], review:[2,'Check the listing'], days:[3,'Collection days'], slots:[4,'Time slots']};
+
+const app = document.getElementById('app');
+let S, thread;
+const $ = (sel, el=document) => el.querySelector(sel);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const f = k => S.fields.find(x => x.k === k);
+
+function reset(){
+  S = {pending:0, photos:0, failed:false, fields:FIELDS.map(x => ({...x, src:'ai', ok:!x.low})), days:[], slots:{}, reviewEl:null, mode:'off', editing:null};
+  home();
+}
+
+/* ---------- Home ---------- */
+function home(){
+  app.innerHTML = `
+  <div class="view home">
+    <h2>Hi Marta</h2>
+    <p>What would you like to do with your item?</p>
+    <button class="entry main" id="sell"><span class="ico">€</span><span><b>Sell</b><span>Take a few photos. The assistant writes the listing.</span></span></button>
+    <button class="entry" id="donate"><span class="ico">♡</span><span><b>Donate</b><span>Give it away to someone nearby.</span></span></button>
+  </div>`;
+  $('#sell').onclick = openChat;
+  $('#donate').onclick = () => alert('The Donate flow is not part of this POC.');
+}
+
+/* ---------- Chat shell ---------- */
+function openChat(){
+  openChatShell();
+  stepTo('photos');
+  (async () => {
+    await bot('Upload the item pictures', 'Up to 6 photos. Show the whole item and any marks: it helps me describe it honestly.');
+    setMode('photos');
+  })();
+}
+
+function stepTo(key){
+  const [n, name] = STEPS[key];
+  $('#stepLabel').textContent = `Step ${n} of 5 · ${name}`;
+  $('#bar').style.width = (n - 1) / 5 * 100 + 8 + '%';
+}
+
+function scrollDown(){ thread.scrollTo({top:thread.scrollHeight, behavior:'smooth'}); }
+function add(html, cls){
+  const d = document.createElement('div');
+  d.className = cls; d.innerHTML = html;
+  thread.appendChild(d); scrollDown(); return d;
+}
+async function bot(text, sub){
+  setMode('off', true);
+  const t = add('<i></i><i></i><i></i>', 'msg bot typing');
+  await wait(750);
+  t.remove();
+  return add(`<span class="who">Assistant</span>${text}${sub ? `<span class="sub">${sub}</span>` : ''}`, 'msg bot');
+}
+const me = html => add(html, 'msg me');
+
+/* ---------- Composer ---------- */
+function setMode(mode, keep){
+  if(!keep) S.mode = mode;
+  const m = keep ? 'off' : mode;
+  const input = $('#input'), attach = $('#attach');
+  attach.disabled = m !== 'photos';
+  input.disabled = m !== 'review';
+  input.placeholder = m === 'photos' ? 'Tap + to add photos'
+    : m === 'review' ? 'Or type a change, e.g. “price 40”'
+    : keep ? 'Assistant is writing…' : 'Choose in the card above';
+  if(keep){ $('#send').disabled = true; return; }
+  syncComposer();
+}
+function syncComposer(){
+  const send = $('#send');
+  if(S.mode === 'photos') send.disabled = S.pending === 0;
+  else if(S.mode === 'review') send.disabled = !$('#input').value.trim();
+  else send.disabled = true;
+}
+function addPhoto(){
+  if(S.pending >= 6) return;
+  S.pending++;
+  $('#tray').insertAdjacentHTML('beforeend', `<div class="thumb">${S.photos + S.pending}</div>`);
+  syncComposer();
+}
+function onSend(){
+  if($('#send').disabled) return;
+  if(S.mode === 'photos') sendPhotos();
+  else if(S.mode === 'review') typedChange();
+}
+
+/* ---------- Step 2: photos ---------- */
+async function sendPhotos(){
+  const n = S.pending;
+  me(`<div class="thumbs">${Array.from({length:n}, (_, i) => `<div class="thumb">${S.photos + i + 1}</div>`).join('')}</div>`);
+  S.photos += n; S.pending = 0; $('#tray').innerHTML = '';
+  setMode('off');
+  if($('#simFail').checked && !S.failed){
+    S.failed = true;
+    await bot("I couldn't make out the item in these photos.", 'Could you add one more in daylight, showing the whole item? Your photos are kept.');
+    setMode('photos');
+    return;
+  }
+  await bot('Thanks! Looking at your photos…');
+  await wait(600);
+  stepTo('review');
+  await bot("Here's a draft of your listing. Everything marked <b>AI</b> was filled in from your photos.", 'Tap any line to change it, or type the change below.');
+  S.reviewEl = add('', 'widget');
+  renderReview();
+  setMode('review');
+}
+
+/* ---------- Step 3: review ---------- */
+function renderReview(){
+  const el = S.reviewEl;
+  const toCheck = S.fields.filter(x => !x.ok).length;
+  el.innerHTML = `<h3>Your listing</h3><p class="whint">Suggested by AI from ${S.photos} photo${S.photos > 1 ? 's' : ''}</p>` +
+    S.fields.map(x => {
+      const head = `<div class="row-head"><span class="lab">${x.label}</span><span class="tag ${x.src === 'you' ? 'you' : ''}">${x.src === 'you' ? 'Edited by you' : 'AI'}</span>${S.editing === x.k ? '' : `<button class="edit" data-edit="${x.k}">Edit</button>`}</div>`;
+      if(S.editing === x.k){
+        const input = x.long ? `<textarea id="ed">${esc(x.v)}</textarea>` : `<input id="ed" value="${esc(x.v)}">`;
+        return `<div class="row">${head}${input}<div class="editbar"><button class="btn small primary" data-save="${x.k}">Save</button><button class="btn small" data-cancel>Cancel</button></div></div>`;
+      }
+      const low = !x.ok;
+      return `<div class="row ${low ? 'low' : ''}">${head}<div class="val">${esc(x.v)}</div>` +
+        (low ? `<div class="note">${x.note}</div><div class="check"><button class="btn small primary" data-ok="${x.k}">Yes, that's right</button><button class="btn small" data-edit="${x.k}">Change it</button></div>`
+             : x.note ? `<div class="note">${x.note}</div>` : '') + `</div>`;
+    }).join('') +
+    `<div class="card-foot"><button class="btn primary block" id="confirm" ${toCheck ? 'disabled' : ''}>Confirm listing</button>
+     <p>${toCheck ? `${toCheck} thing to check first` : 'You can still change it later from the preview.'}</p></div>`;
+
+  el.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => { S.editing = b.dataset.edit; renderReview(); const e = $('#ed', el); e.focus(); });
+  el.querySelectorAll('[data-ok]').forEach(b => b.onclick = () => { f(b.dataset.ok).ok = true; renderReview(); });
+  el.querySelectorAll('[data-cancel]').forEach(b => b.onclick = () => { S.editing = null; renderReview(); });
+  el.querySelectorAll('[data-save]').forEach(b => b.onclick = () => {
+    const x = f(b.dataset.save), v = $('#ed', el).value.trim();
+    if(v && v !== x.v){ x.v = v; x.src = 'you'; }
+    x.ok = true; S.editing = null; renderReview();
+  });
+  const c = $('#confirm', el); if(c) c.onclick = confirmListing;
+}
+
+const KEYWORDS = {title:'title', name:'title', description:'desc', desc:'desc', category:'cat', colour:'color', color:'color', condition:'cond', damage:'cond', price:'price', cost:'price', location:'loc', area:'loc'};
+async function typedChange(){
+  const text = $('#input').value.trim();
+  $('#input').value = ''; syncComposer();
+  me(esc(text));
+  const words = text.toLowerCase().split(/\s+/);
+  const idx = words.findIndex(w => KEYWORDS[w.replace(/[^a-z]/g, '')]);
+  if(idx < 0){
+    await bot('I can change the title, description, category, colour, condition, price or location.', 'Try “price 40”, or tap Edit on any line.');
+    setMode('review'); return;
+  }
+  const x = f(KEYWORDS[words[idx].replace(/[^a-z]/g, '')]);
+  let v = text.split(/\s+/).slice(idx + 1).join(' ').replace(/^(to|is|:|=)\s*/i, '').trim();
+  if(!v){ await bot(`What should the ${x.label.toLowerCase()} be?`); setMode('review'); return; }
+  if(x.k === 'price'){ const n = v.match(/\d+([.,]\d+)?/); if(n) v = '€' + n[0]; }
+  x.v = v; x.src = 'you'; x.ok = true;
+  renderReview();
+  await bot(`Done: ${x.label.toLowerCase()} is now <b>${esc(v)}</b>.`, x.k === 'price' ? 'Similar chairs near you sold for €35–55.' : '');
+  setMode('review');
+}
+
+async function confirmListing(){
+  S.reviewEl.classList.add('locked');
+  S.editing = null; setMode('off');
+  me('Looks good');
+  if(S.days.length){ // coming back from preview: keep collection times
+    await bot('Updated. Your collection times are kept.');
+    await wait(400); preview(); return;
+  }
+  stepTo('days');
+  await bot("What's your availability for collection?", 'Pick every day that works. Buyers can only book the times you choose.');
+  const w = add('', 'widget');
+  w.innerHTML = `<div class="chips">${DAYS.map(d => `<button class="chip" aria-pressed="false">${d}</button>`).join('')}</div>
+    <div class="wfoot"><button class="btn primary block" disabled>Next</button></div>`;
+  setMode('off');
+  const next = $('.wfoot button', w);
+  w.querySelectorAll('.chip').forEach(c => c.onclick = () => {
+    c.setAttribute('aria-pressed', c.getAttribute('aria-pressed') !== 'true');
+    S.days = [...w.querySelectorAll('.chip[aria-pressed="true"]')].map(x => x.textContent);
+    next.disabled = !S.days.length;
+  });
+  next.onclick = () => { w.classList.add('locked'); me(S.days.join(', ')); askSlots(); };
+}
+
+/* ---------- Step 5: time slots ---------- */
+async function askSlots(){
+  stepTo('slots');
+  await bot('Which times suit you on those days?', 'Pick at least one slot per day.');
+  const w = add('', 'widget');
+  S.slots = {};
+  w.innerHTML = S.days.map(d => `<div class="dayblock"><b>${d}</b><div class="chips">${SLOTS.map(s => `<button class="chip" aria-pressed="false" data-d="${d}">${s}</button>`).join('')}</div></div>`).join('') +
+    `<div class="wfoot"><button class="btn primary block" disabled>Next: preview</button></div>`;
+  setMode('off');
+  const next = $('.wfoot button', w);
+  w.querySelectorAll('.chip').forEach(c => c.onclick = () => {
+    c.setAttribute('aria-pressed', c.getAttribute('aria-pressed') !== 'true');
+    S.days.forEach(d => S.slots[d] = [...w.querySelectorAll(`.chip[data-d="${d}"][aria-pressed="true"]`)].map(x => x.textContent));
+    next.disabled = !S.days.every(d => S.slots[d] && S.slots[d].length);
+  });
+  next.onclick = () => { w.classList.add('locked'); me('Done'); setTimeout(preview, 500); };
+}
+
+/* ---------- Step 6: preview ---------- */
+function listingBody(){
+  return `<div class="hero"><span class="count">1 / ${S.photos}</span></div>
+  <div class="pv">
+    <h2>${esc(f('title').v)}</h2>
+    <div class="price">${esc(f('price').v)}</div>
+    <p>${esc(f('desc').v)}</p>
+    <dl class="meta"><dt>Category</dt><dd>${esc(f('cat').v)}</dd><dt>Colour</dt><dd>${esc(f('color').v)}</dd><dt>Condition</dt><dd>${esc(f('cond').v)}</dd><dt>Location</dt><dd>${esc(f('loc').v)}</dd></dl>
+    <div class="box"><h4>Collection</h4>${S.days.map(d => `<div>${d}: ${S.slots[d].join(', ')}</div>`).join('')}</div>
+  </div>`;
+}
+function preview(){
+  app.innerHTML = `
+  <div class="view">
+    <div class="topbar"><b>Preview</b><small style="margin-left:auto;color:var(--muted)">Step 5 of 5</small></div>
+    <div class="scroll">${listingBody()}</div>
+    <div class="lock">🔒 Nothing is public yet. This is exactly what buyers will see.</div>
+    <div class="actions"><button class="btn" id="edit">Edit</button><button class="btn primary" id="up">Upload item</button></div>
+  </div>`;
+  $('#edit').onclick = backToEdit;
+  $('#up').onclick = live;
+}
+async function backToEdit(){
+  openChatShell();
+  stepTo('review');
+  await bot('Sure. What would you like to change?', 'Tap a line or type the change.');
+  S.reviewEl = add('', 'widget');
+  renderReview();
+  setMode('review');
+}
+function openChatShell(){
+  app.innerHTML = `
+  <div class="view">
+    <div class="hdr">
+      <div class="hdr-top"><b>Sell an item</b><small id="stepLabel"></small></div>
+      <div class="private">🔒 Draft. Only you can see it until you upload.</div>
+      <div class="progress"><i id="bar" style="width:0"></i></div>
+    </div>
+    <div class="thread" id="thread"></div>
+    <div class="tray" id="tray"></div>
+    <div class="composer">
+      <button class="attach" id="attach" title="Add photos">+</button>
+      <input id="input" autocomplete="off">
+      <button class="send" id="send">Send</button>
+    </div>
+  </div>`;
+  thread = $('#thread');
+  $('#attach').onclick = addPhoto;
+  $('#send').onclick = onSend;
+  $('#input').addEventListener('keydown', e => { if(e.key === 'Enter') onSend(); });
+  $('#input').addEventListener('input', syncComposer);
+}
+
+/* ---------- Step 7: live ---------- */
+function live(){
+  app.innerHTML = `
+  <div class="view live">
+    <div class="tick">✓</div>
+    <h2>Your armchair is live</h2>
+    <p>Buyers nearby can see it now.</p>
+    <p>When someone books a collection slot, we'll tell you here.</p>
+    <div class="stack"><button class="btn primary block" id="view">View post</button><button class="btn block" id="home">Back to home</button></div>
+  </div>`;
+  $('#view').onclick = () => {
+    app.innerHTML = `<div class="view"><div class="topbar"><b>Your listing</b><span class="badge" style="margin-left:auto">Live</span></div><div class="scroll">${listingBody()}</div>
+      <div class="actions"><button class="btn block" id="home">Back to home</button></div></div>`;
+    $('#home').onclick = reset;
+  };
+  $('#home').onclick = reset;
+}
+
+document.getElementById('restart').onclick = reset;
+reset();
+</script>
+</body>
+</html>
