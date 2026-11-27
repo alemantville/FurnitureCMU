@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Upload photos</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#5D6577}a:hover{color:#1C1F26}
+.chip{box-sizing:border-box;min-height:44px;padding:10px 16px;border-radius:999px;background:#FFFFFF;border:1px solid rgba(0,0,0,.1);box-shadow:0 1px 2px rgba(0,0,0,.05),0 4px 10px rgba(0,0,0,.05);font-family:inherit;font-size:16px;line-height:20px;font-weight:600;color:#1C1F26;text-decoration:none;display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+.chip:hover{background:#F4F6F9;color:#1C1F26}
+.send{height:44px;padding:0 20px;border-radius:999px;background:#1C1F26;color:#FFFFFF;font-size:15px;font-weight:600;text-decoration:none;display:flex;align-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 8px 18px rgba(0,0,0,.2)}
+.send:hover{background:#2A2F3A;color:#FFFFFF}
+input::placeholder{color:#6E7585}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; background: linear-gradient(180deg, #FFFFFF 0%, #EEEDF0 45%, #F8F8F9 100%); font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1C1F26">
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 20px 16px 12px">
+<a href="Home.dc.html" aria-label="Back" style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 999px; background: rgba(255,255,255,.5); border: 1px solid rgba(255,255,255,.75); box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 4px 10px rgba(0,0,0,.05); display: flex; align-items: center; justify-content: center; color: #1C1F26"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"></path></svg></a>
+<span style="height: 40px; box-sizing: border-box; padding: 0 14px; border-radius: 999px; border: 1px solid #CFD2DA; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; line-height: 18px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 10h8M8 14h5M21 12c0 4.4-4 8-9 8-1.4 0-2.7-.3-3.9-.8L3 20l1.3-3.9C3.5 14.9 3 13.5 3 12c0-4.4 4-8 9-8s9 3.6 9 8z"></path></svg>Selling an item</span>
+</div>
+<div style="flex: 1; min-height: 0; padding: 8px 16px 16px; display: flex; flex-direction: column; justify-content: flex-end; gap: 16px">
+<p style="margin: 0; font-size: 18px; line-height: 24px; font-weight: 500; color: #5D6577">Hey Marta! What do you want to do today?</p>
+<div style="align-self: flex-end; max-width: 80%; background: #FCFCFB; border-radius: 20px 20px 4px 20px; padding: 12px 16px; font-size: 16px; line-height: 24px; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 6px 16px rgba(0,0,0,.05)">Sell an item</div>
+<div>
+<p style="margin: 0; font-size: 18px; line-height: 24px; font-weight: 500">Upload the item pictures</p>
+<p style="margin: 4px 0 0; font-size: 13px; line-height: 18px; color: #3B4252">Show the whole item and any marks: it helps me describe it honestly.</p>
+</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px 12px">
+<button type="button" class="chip" style="padding-left: 6px"><span style="width: 32px; height: 32px; border-radius: 999px; background: #F1F4F8; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.8 6.2a2.3 2.3 0 0 1-1.6 1c-.4.1-.8.1-1.1.2A2.2 2.2 0 0 0 2.2 9.6V18a2.3 2.3 0 0 0 2.3 2.3h15a2.3 2.3 0 0 0 2.3-2.3V9.6a2.2 2.2 0 0 0-1.9-2.2l-1.1-.2a2.3 2.3 0 0 1-1.6-1l-.8-1.3a2.2 2.2 0 0 0-1.7-1H10.3a2.2 2.2 0 0 0-1.7 1z"></path><path d="M16.5 12.8a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"></path></svg></span>Take a photo</button>
+<button type="button" class="chip" style="padding-left: 6px"><span style="width: 32px; height: 32px; border-radius: 999px; background: #F1F4F8; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m3 16 5-5 4 4 3-3 6 6"></path><circle cx="15.5" cy="8.5" r="1.5"></circle></svg></span>Choose from library</button>
+</div>
+<div style="display: flex; gap: 8px; padding: 0 16px 12px">
+<div role="img" aria-label="Photo 1: the armchair from the front" style="width: 56px; height: 56px; border-radius: 12px; background: #E9EDF2; box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 6px 16px rgba(0,0,0,.05); display: flex; align-items: center; justify-content: center; color: #6E7585; font-size: 12px; font-weight: 500">1</div>
+<div role="img" aria-label="Photo 2: the armchair from the side" style="width: 56px; height: 56px; border-radius: 12px; background: #E9EDF2; box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 6px 16px rgba(0,0,0,.05); display: flex; align-items: center; justify-content: center; color: #6E7585; font-size: 12px; font-weight: 500">2</div>
+<div role="img" aria-label="Photo 3: the cushions" style="width: 56px; height: 56px; border-radius: 12px; background: #E9EDF2; box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 6px 16px rgba(0,0,0,.05); display: flex; align-items: center; justify-content: center; color: #6E7585; font-size: 12px; font-weight: 500">3</div>
+<div aria-hidden="true" style="width: 56px; height: 56px; box-sizing: border-box; border-radius: 12px; border: 1.5px dashed #9AA0AD; background: #D8E8FA; display: flex; align-items: center; justify-content: center; color: #145399"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></div>
+</div>
+<div style="margin: 0 16px 24px; display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 999px; background: rgba(255,255,255,.5); border: 1px solid rgba(255,255,255,.75); box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 4px 10px rgba(0,0,0,.05)">
+<button type="button" aria-label="Add photos" style="width: 44px; height: 44px; flex: none; border-radius: 999px; border: none; background: #F1F4F8; color: #1C1F26; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+<label for="msg-photos" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Message</label>
+<input id="msg-photos" placeholder="3 photos added" style="flex: 1; min-width: 0; height: 44px; border: none; background: transparent; font-family: inherit; font-size: 15px; color: #1C1F26; outline: none">
+<a class="send" href="Identity.dc.html">Send</a>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
