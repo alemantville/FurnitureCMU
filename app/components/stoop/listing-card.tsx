@@ -13,7 +13,8 @@ export type ListingCardProps = React.ComponentProps<"article"> & {
   photo?: string
   titleTag?: TagType
   priceTag?: TagType
-  descriptionTag?: TagType
+  /** Pass `null` to hide the description Tag. */
+  descriptionTag?: TagType | null
   details?: Omit<FieldRowProps, "className">[]
 }
 
@@ -70,7 +71,7 @@ export function ListingCard({
 
       <div className="flex w-full flex-wrap items-end gap-x-1.5 gap-y-1">
         <p className="type-body-md w-full text-fg-primary">{description}</p>
-        <Tag type={descriptionTag} />
+        {descriptionTag ? <Tag type={descriptionTag} /> : null}
       </div>
 
       {details.length ? (

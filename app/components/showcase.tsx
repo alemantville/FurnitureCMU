@@ -64,6 +64,7 @@ import {
   TopBar,
   TypingIndicator,
   YourReply,
+  PriceCollage,
 } from "@/components/stoop"
 
 /* ---------------------------------------------------------------- layout */
@@ -455,6 +456,9 @@ function ElementComponents() {
             photoCount="1 photo"
             details={details}
           />
+        </Panel>
+        <Panel title="Price collage" className="max-w-[350px]">
+          <PriceCollage low="€35" high="€55" />
         </Panel>
         <Panel title="Field row" className="flex flex-col gap-2">
           {details.map((row) => (

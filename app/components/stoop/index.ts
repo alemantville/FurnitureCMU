@@ -24,5 +24,6 @@ export { TopBar, type TopBarProps } from "./top-bar"
 export { SheetSection, type SheetSectionProps } from "./sheet-section"
 export { BottomSheet, type BottomSheetProps } from "./bottom-sheet"
 export { SellerBox, type SellerBoxProps } from "./seller-box"
+export { PriceCollage, type PriceCollageProps } from "./price-collage"
 
 export type { IconComponent } from "./types"

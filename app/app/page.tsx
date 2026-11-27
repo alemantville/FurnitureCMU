@@ -1,5 +1,6 @@
-import { Showcase } from "@/components/showcase"
+import { StartScreen } from "@/components/sell/start-screen"
 
+/** The homepage is the chat: screen 01 Start. */
 export default function Page() {
-  return <Showcase />
+  return <StartScreen />
 }
