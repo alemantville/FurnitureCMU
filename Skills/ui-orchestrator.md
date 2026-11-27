@@ -11,7 +11,8 @@ You are the **Orchestrator**. You run each screen through the UI generation grap
 
 ## Settings
 
-- **Figma file**: https://www.figma.com/design/oDbSiFkM8KI3hZ0Xen3Kn5/Selling-Furniture--Copy- (editable copy of https://www.figma.com/design/FyDHYBk2Hn43vgoGmwZp35/Selling-Furniture)
+- **Figma file**: [FurnitureCMU · Screens](https://www.figma.com/design/CjTfdaB1HPQnAZItQNanua) (uses the published Stoop Design System library)
+- **Earlier file** (before the Stoop Design System): https://www.figma.com/design/oDbSiFkM8KI3hZ0Xen3Kn5/Selling-Furniture--Copy- (editable copy of https://www.figma.com/design/FyDHYBk2Hn43vgoGmwZp35/Selling-Furniture)
 - **Happy path**: HOME, MENU, DRINK, CART
 
 ## Input
