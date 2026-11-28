@@ -1,0 +1,37 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-11-27T18:45:00Z"},
+  "title": "Stoop screens and flows",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 2740, "h": 1000, "title": "User flows: sell an item"},
+    "Home.dc.html": {"x": 0, "y": 1400, "w": 390, "h": 844, "title": "HOME", "is_interactive": true, "radius": 40},
+    "Photos.dc.html": {"x": 470, "y": 1400, "w": 390, "h": 844, "title": "PHOTOS", "is_interactive": true, "radius": 40},
+    "Identity.dc.html": {"x": 940, "y": 1400, "w": 390, "h": 844, "title": "IDENTITY", "is_interactive": true, "radius": 40},
+    "Condition.dc.html": {"x": 1410, "y": 1400, "w": 390, "h": 844, "title": "CONDITION", "is_interactive": true, "radius": 40},
+    "Price.dc.html": {"x": 1880, "y": 1400, "w": 390, "h": 844, "title": "PRICE", "is_interactive": true, "radius": 40},
+    "Offer.dc.html": {"x": 2350, "y": 1400, "w": 390, "h": 844, "title": "OFFER (lowest price)", "is_interactive": true, "radius": 40},
+    "Review.dc.html": {"x": 0, "y": 2644, "w": 390, "h": 844, "title": "REVIEW", "is_interactive": true, "radius": 40},
+    "SellBy.dc.html": {"x": 470, "y": 2644, "w": 390, "h": 844, "title": "SELLBY", "is_interactive": true, "radius": 40},
+    "Days.dc.html": {"x": 940, "y": 2644, "w": 390, "h": 844, "title": "DAYS", "is_interactive": true, "radius": 40},
+    "Slots.dc.html": {"x": 1410, "y": 2644, "w": 390, "h": 844, "title": "SLOTS", "is_interactive": true, "radius": 40},
+    "Preview.dc.html": {"x": 1880, "y": 2644, "w": 390, "h": 844, "title": "PREVIEW", "is_interactive": true, "radius": 40},
+    "Live.dc.html": {"x": 2350, "y": 2644, "w": 390, "h": 844, "title": "LIVE", "is_interactive": true, "radius": 40},
+    "PhotosFallback.dc.html": {"x": 0, "y": 3888, "w": 390, "h": 844, "title": "PHOTOS/fallback", "is_interactive": true, "radius": 40},
+    "PriceError.dc.html": {"x": 470, "y": 3888, "w": 390, "h": 844, "title": "PRICE/error", "is_interactive": true, "radius": 40}
+  },
+  "order": [
+    "Main.dc.html",
+    "Home.dc.html", "Photos.dc.html", "Identity.dc.html", "Condition.dc.html", "Price.dc.html", "Offer.dc.html",
+    "Review.dc.html", "SellBy.dc.html", "Days.dc.html", "Slots.dc.html", "Preview.dc.html", "Live.dc.html",
+    "PhotosFallback.dc.html", "PriceError.dc.html"
+  ],
+  "notes": {
+    "flowsTitle": {"x": 0, "y": -300, "text": "User flows", "kind": "title1", "maxW": 2740},
+    "rowA": {"x": 0, "y": 1100, "text": "Sell an item: photos to price", "kind": "title1", "maxW": 2740},
+    "rowB": {"x": 0, "y": 2344, "text": "Sell an item: review to live", "kind": "title1", "maxW": 2740},
+    "rowC": {"x": 0, "y": 3588, "text": "Fallback states", "kind": "title1", "maxW": 860}
+  },
+  "designSystems": []
+}

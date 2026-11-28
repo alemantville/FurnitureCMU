@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Item live</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#5D6577}a:hover{color:#1C1F26}
+.btn{box-sizing:border-box;height:48px;padding:0 24px;border-radius:999px;font-family:inherit;font-size:16px;line-height:20px;font-weight:600;text-decoration:none;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.primary{background:#1C1F26;color:#FFFFFF;border:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 8px 18px rgba(0,0,0,.2)}
+.primary:hover{background:#2A2F3A;color:#FFFFFF}
+.secondary{background:#FFFFFF;color:#1C1F26;border:1px solid rgba(0,0,0,.1)}
+.secondary:hover{background:#F4F6F9;color:#1C1F26}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px 24px; text-align: center; overflow: hidden; background: linear-gradient(180deg, #FFFFFF 0%, #EEEDF0 45%, #F8F8F9 100%); font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1C1F26">
+<div aria-hidden="true" style="width: 64px; height: 64px; border-radius: 999px; background: #1C1F26; color: #FFFFFF; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 8px 18px rgba(0,0,0,.2)"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.75 6 6 9-13.5"></path></svg></div>
+<h1 style="margin: 0 0 8px; font-size: 24px; line-height: 32px; font-weight: 700; letter-spacing: -0.4px">Your armchair is live</h1>
+<p style="margin: 0 0 6px; font-size: 16px; line-height: 24px; font-weight: 500; color: #5D6577">Buyers nearby can see it now.</p>
+<p style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 500; color: #5D6577">I'll handle offers from €41 for you and let you know when it's sold.</p>
+<div style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 24px">
+<button type="button" class="btn primary">View post</button>
+<a class="btn secondary" href="Home.dc.html">Back to home</a>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
