@@ -38,6 +38,10 @@ export type ChatScreenProps = {
   placeholder: string
   /** What the composer's + does (e.g. add photos). */
   onAttach?: () => void
+  /** Called with the typed message when the seller presses Send. */
+  onSend?: (text: string) => void
+  /** Disable the composer, e.g. while the assistant is thinking. */
+  composerDisabled?: boolean
 }
 
 /**
@@ -51,14 +55,17 @@ export function ChatScreen({
   suggestions,
   placeholder,
   onAttach,
+  onSend,
+  composerDisabled,
 }: ChatScreenProps) {
   const router = useRouter()
   const thread = React.useRef<HTMLDivElement>(null)
 
+  // Open on the newest message, and follow new ones as they arrive.
   React.useEffect(() => {
     const el = thread.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [])
+  }, [children])
 
   return (
     <SellFrame>
@@ -71,7 +78,12 @@ export function ChatScreen({
       </div>
       <div className="flex flex-col gap-3 px-page pt-2 pb-6">
         {suggestions ? <div className="flex flex-wrap gap-2">{suggestions}</div> : null}
-        <Composer placeholder={placeholder} onAttach={onAttach} />
+        <Composer
+          placeholder={placeholder}
+          onAttach={onAttach}
+          onSend={onSend}
+          disabled={composerDisabled}
+        />
       </div>
     </SellFrame>
   )
