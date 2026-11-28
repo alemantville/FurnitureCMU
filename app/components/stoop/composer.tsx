@@ -3,7 +3,6 @@
 import * as React from "react"
 import { PlusIcon } from "@heroicons/react/20/solid"
 import { animate, press } from "motion"
-import { useReducedMotion } from "motion/react"
 
 import { cn } from "@/lib/utils"
 
@@ -40,8 +39,9 @@ const SENT_MS = 1200
  *
  * Send motion: springs down on press, and on send a ring sweeps round the
  * button and fades out while the label swaps to "Sent" in the Checked
- * colour. Sending still happens on a tap or Enter. Reduced motion keeps
- * only the colour and label change.
+ * colour. Sending still happens on a tap or Enter. The motion plays even
+ * when the device asks for reduced motion: a team decision, so the send
+ * confirmation looks the same for everyone.
  */
 export function Composer({
   value,
@@ -60,7 +60,6 @@ export function Composer({
 
   const [sent, setSent] = React.useState(false)
   const [label, setLabel] = React.useState("Send")
-  const reduceMotion = useReducedMotion() ?? false
 
   const sendRef = React.useRef<HTMLSpanElement>(null)
   const ringRef = React.useRef<SVGSVGElement>(null)
@@ -76,21 +75,21 @@ export function Composer({
   // Press-down spring on the Send button.
   React.useEffect(() => {
     const button = sendRef.current?.querySelector("button")
-    if (!button || reduceMotion) return
+    if (!button) return
     return press(button, (element) => {
       animate(element, { scale: 0.92 }, ui)
       return () => {
         animate(element, { scale: 1 }, lively)
       }
     })
-  }, [reduceMotion])
+  }, [])
 
   React.useEffect(() => () => window.clearTimeout(resetTimer.current), [])
 
   /** Blur-fade the label out, swap the word, spring it back in. */
   function swapLabel(next: string) {
     const element = labelRef.current
-    if (!element || reduceMotion) {
+    if (!element) {
       setLabel(next)
       return
     }
@@ -116,7 +115,7 @@ export function Composer({
 
     const ring = ringRef.current
     const sweep = sweepRef.current
-    if (ring && sweep && !reduceMotion) {
+    if (ring && sweep) {
       animate(ring, { opacity: 1, scale: 1 }, { duration: 0 })
       animate(sweep, { strokeDashoffset: [1, 0] }, { duration: 0.35, ease: outEase }).then(() =>
         animate(ring, { scale: [1, 1.1], opacity: [1, 0] }, { duration: 0.5, ease: outEase })
