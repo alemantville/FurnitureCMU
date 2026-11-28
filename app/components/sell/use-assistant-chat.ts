@@ -2,7 +2,14 @@
 
 import * as React from "react"
 
-export type ChatTurn = { role: "user" | "assistant"; content: string }
+import type { Listing } from "@/lib/listings"
+
+export type ChatTurn = {
+  role: "user" | "assistant"
+  content: string
+  /** Items for sale the assistant found for this reply (shown as cards). */
+  listings?: Listing[]
+}
 
 /** What the chat shows when the assistant can't answer (PR H-04 fallback). */
 export type AssistantProblem = "unavailable" | "failed"
@@ -24,14 +31,23 @@ export function useAssistantChat() {
       const response = await fetch("/api/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history }),
+        // Only the words go back to the model; the cards stay in the chat.
+        body: JSON.stringify({
+          messages: history.map(({ role, content }) => ({ role, content })),
+        }),
       })
-      const data = (await response.json().catch(() => null)) as { reply?: string } | null
+      const data = (await response.json().catch(() => null)) as {
+        reply?: string
+        listings?: Listing[]
+      } | null
       if (!response.ok || !data?.reply) {
         setProblem(response.status === 503 ? "unavailable" : "failed")
         return
       }
-      setTurns([...history, { role: "assistant", content: data.reply }])
+      setTurns([
+        ...history,
+        { role: "assistant", content: data.reply, listings: data.listings ?? [] },
+      ])
     } catch {
       setProblem("unavailable")
     } finally {

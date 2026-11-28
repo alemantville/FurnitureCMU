@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { AssistantMessage, Chip, Notice, TypingIndicator, YourReply } from "@/components/stoop"
 import { ChatScreen } from "@/components/sell/chat-screen"
 import { sellHref } from "@/components/sell/flow"
+import { ListingResults } from "@/components/sell/listing-results"
 import { useAssistantChat } from "@/components/sell/use-assistant-chat"
 
 /**
@@ -36,9 +37,12 @@ export function StartScreen() {
         turn.role === "user" ? (
           <YourReply key={index}>{turn.content}</YourReply>
         ) : (
-          <AssistantMessage key={index} state={index === lastAssistant ? "latest" : "earlier"}>
-            {turn.content}
-          </AssistantMessage>
+          <div key={index} className="flex flex-col gap-3">
+            <AssistantMessage state={index === lastAssistant ? "latest" : "earlier"}>
+              {turn.content}
+            </AssistantMessage>
+            <ListingResults listings={turn.listings ?? []} />
+          </div>
         )
       )}
 
